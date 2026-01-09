@@ -1,6 +1,14 @@
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+:root {
+    /* Brand colors from logo */
+    --cyan-start: #7FEFEF;
+    --cyan-end: #5BC4C4;
+    --pink-start: #E8A5D8;
+    --pink-end: #D68FD6;
+    --bg-primary: #0f0f0f;
+    --bg-secondary: #1a1a1a;
+}
 
 * {
     margin: 0;
@@ -14,14 +22,14 @@ html {
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background-color: #09090b;
+    background-color: var(--bg-primary);
     color: #ffffff;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
 }
 
 ::selection {
-    background: #00D4FF;
+    background: var(--cyan-start);
     color: #000;
 }
 
@@ -74,7 +82,7 @@ body {
 .phone-mockup {
     width: 280px;
     height: 560px;
-    background: linear-gradient(145deg, #18181b 0%, #09090b 100%);
+    background: linear-gradient(145deg, #18181b 0%, #0f0f0f 100%);
     border-radius: 40px;
     padding: 10px;
     box-shadow:
@@ -86,7 +94,7 @@ body {
 .phone-screen {
     width: 100%;
     height: 100%;
-    background: #09090b;
+    background: #0f0f0f;
     border-radius: 32px;
     overflow: hidden;
     position: relative;
@@ -99,7 +107,7 @@ body {
     transform: translateX(-50%);
     width: 100px;
     height: 24px;
-    background: #09090b;
+    background: #0f0f0f;
     border-radius: 0 0 16px 16px;
     z-index: 10;
 }

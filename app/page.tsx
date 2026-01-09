@@ -23,8 +23,15 @@ export default function LandingPage() {
   const [showComingSoonModal, setShowComingSoonModal] = useState(false);
   const [showAndroidModal, setShowAndroidModal] = useState(false);
 
+  // Brand colors
+  const CYAN = "#7FEFEF";
+  const CYAN_END = "#5BC4C4";
+  const PINK = "#E8A5D8";
+  const PINK_END = "#D68FD6";
+  const BG = "#0f0f0f";
+
   return (
-    <div style={{ background: "#09090b", minHeight: "100vh", color: "#fff" }}>
+    <div style={{ background: BG, minHeight: "100vh", color: "#fff" }}>
       {/* Coming Soon Modal */}
       <AnimatePresence>
         {showComingSoonModal && (
@@ -249,7 +256,26 @@ export default function LandingPage() {
           borderBottom: "1px solid rgba(255,255,255,0.05)",
         }}
       >
-        <span style={{ fontSize: "20px", fontWeight: 700 }}>TL;Dev</span>
+        <span style={{ fontSize: "20px", fontWeight: 700 }}>
+          <span
+            style={{
+              background: `linear-gradient(180deg, ${CYAN} 0%, ${CYAN_END} 100%)`,
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            TL;
+          </span>
+          <span
+            style={{
+              background: `linear-gradient(180deg, ${PINK} 0%, ${PINK_END} 100%)`,
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            Dev
+          </span>
+        </span>
         <motion.a
           href="#download"
           whileHover={{ scale: 1.05 }}
@@ -282,17 +308,30 @@ export default function LandingPage() {
           overflow: "hidden",
         }}
       >
-        {/* Background glow */}
+        {/* Background glow - cyan */}
         <div
           style={{
             position: "absolute",
             top: "30%",
-            left: "50%",
+            left: "30%",
             transform: "translate(-50%, -50%)",
-            width: "800px",
-            height: "800px",
+            width: "600px",
+            height: "600px",
             background:
-              "radial-gradient(circle, rgba(0,212,255,0.08) 0%, transparent 70%)",
+              "radial-gradient(circle, rgba(127,239,239,0.1) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
+        {/* Background glow - pink */}
+        <div
+          style={{
+            position: "absolute",
+            top: "40%",
+            right: "20%",
+            width: "500px",
+            height: "500px",
+            background:
+              "radial-gradient(circle, rgba(232,165,216,0.08) 0%, transparent 70%)",
             pointerEvents: "none",
           }}
         />
@@ -317,7 +356,7 @@ export default function LandingPage() {
             style={{
               width: "8px",
               height: "8px",
-              background: "#00D4FF",
+              background: CYAN,
               borderRadius: "50%",
             }}
             className="animate-pulse-glow"
@@ -506,8 +545,8 @@ export default function LandingPage() {
             style={{
               display: "inline-block",
               padding: "6px 14px",
-              background: "rgba(0,212,255,0.1)",
-              color: "#00D4FF",
+              background: "rgba(127,239,239,0.1)",
+              color: CYAN,
               borderRadius: "999px",
               fontSize: "14px",
               fontWeight: 500,
@@ -547,13 +586,14 @@ export default function LandingPage() {
           style={{
             position: "relative",
             padding: "12px",
-            background: "linear-gradient(145deg, #1a1a1d 0%, #09090b 100%)",
+            background: "linear-gradient(145deg, #1a1a1d 0%, #0f0f0f 100%)",
             borderRadius: "44px",
             boxShadow: `
               0 50px 100px -20px rgba(0, 0, 0, 0.7),
               0 0 0 1px rgba(255, 255, 255, 0.1),
               inset 0 1px 0 rgba(255, 255, 255, 0.1),
-              0 0 80px rgba(0, 212, 255, 0.15)
+              0 0 60px rgba(127, 239, 239, 0.12),
+              0 0 100px rgba(232, 165, 216, 0.08)
             `,
           }}
         >
@@ -596,7 +636,7 @@ export default function LandingPage() {
         style={{
           padding: "100px 20px",
           background:
-            "linear-gradient(180deg, transparent 0%, rgba(0,212,255,0.02) 50%, transparent 100%)",
+            "linear-gradient(180deg, transparent 0%, rgba(232,165,216,0.02) 50%, transparent 100%)",
         }}
       >
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
@@ -611,8 +651,8 @@ export default function LandingPage() {
               style={{
                 display: "inline-block",
                 padding: "6px 14px",
-                background: "rgba(0,212,255,0.1)",
-                color: "#00D4FF",
+                background: "rgba(232,165,216,0.1)",
+                color: PINK,
                 borderRadius: "999px",
                 fontSize: "14px",
                 fontWeight: 500,
