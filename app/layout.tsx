@@ -115,22 +115,6 @@ export const metadata: Metadata = {
     },
   },
 
-  // App Links for mobile deep linking
-  appLinks: {
-    ios: {
-      app_store_id: "coming-soon",
-      app_name: "TL;Dev",
-    },
-    android: {
-      package: "com.tldev.app",
-      app_name: "TL;Dev",
-    },
-    web: {
-      url: siteUrl,
-      should_fallback: true,
-    },
-  },
-
   // Verification (add your actual verification codes)
   // verification: {
   //   google: "your-google-verification-code",
