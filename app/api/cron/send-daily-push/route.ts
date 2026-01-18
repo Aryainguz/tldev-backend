@@ -28,19 +28,33 @@ import { prisma } from "@/lib/prisma";
 import { sendPushNotification, formatTipNotification } from "@/lib/push";
 import { Expo } from "expo-server-sdk";
 
-// Hours when notifications are sent (9 AM to 11 PM = 15 hours)
+// Hours when notifications are sent (9 AM to 11 PM IST = 15 hours)
 const START_HOUR = 9;
 const END_HOUR = 23; // 11 PM (last notification)
 const TOTAL_SLOTS = END_HOUR - START_HOUR + 1; // 15 slots
 
-// Get today's date string in YYYY-MM-DD format
-function getTodayDateString(): string {
-  return new Date().toISOString().split("T")[0];
+// IST timezone offset
+const IST_OFFSET_HOURS = 5;
+const IST_OFFSET_MINUTES = 30;
+
+// Get current date and time in IST
+function getISTDate(): Date {
+  const now = new Date();
+  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+  const istTime =
+    utcTime + (IST_OFFSET_HOURS * 60 + IST_OFFSET_MINUTES) * 60000;
+  return new Date(istTime);
 }
 
-// Get current hour (0-23)
+// Get today's date string in YYYY-MM-DD format (IST)
+function getTodayDateString(): string {
+  const istDate = getISTDate();
+  return istDate.toISOString().split("T")[0];
+}
+
+// Get current hour in IST (0-23)
 function getCurrentHour(): number {
-  return new Date().getHours();
+  return getISTDate().getHours();
 }
 
 // Get tip index for a given hour (0-14)

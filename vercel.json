@@ -7,10 +7,6 @@
     {
       "path": "/api/jobs/enrich-tip",
       "schedule": "15 6 * * *"
-    },
-    {
-      "path": "/api/cron/send-daily-push",
-      "schedule": "0 9-23 * * *"
     }
   ]
 }

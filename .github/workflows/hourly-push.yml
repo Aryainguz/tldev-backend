@@ -1,0 +1,49 @@
+name: Hourly Push Notifications
+
+on:
+  schedule:
+    # Runs every hour from 9 AM to 11 PM IST (Indian Standard Time)
+    # IST = UTC + 5:30, so we run at :30 minutes to align with IST hours
+    # 9 AM IST = 3:30 UTC, 11 PM IST = 17:30 UTC
+    - cron: "30 3 * * *" # 9:00 AM IST
+    - cron: "30 4 * * *" # 10:00 AM IST
+    - cron: "30 5 * * *" # 11:00 AM IST
+    - cron: "30 6 * * *" # 12:00 PM IST
+    - cron: "30 7 * * *" # 1:00 PM IST
+    - cron: "30 8 * * *" # 2:00 PM IST
+    - cron: "30 9 * * *" # 3:00 PM IST
+    - cron: "30 10 * * *" # 4:00 PM IST
+    - cron: "30 11 * * *" # 5:00 PM IST
+    - cron: "30 12 * * *" # 6:00 PM IST
+    - cron: "30 13 * * *" # 7:00 PM IST
+    - cron: "30 14 * * *" # 8:00 PM IST
+    - cron: "30 15 * * *" # 9:00 PM IST
+    - cron: "30 16 * * *" # 10:00 PM IST
+    - cron: "30 17 * * *" # 11:00 PM IST
+  workflow_dispatch: # Allow manual trigger for testing
+
+jobs:
+  send-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Hourly Push Notification
+        env:
+          TZ: Asia/Kolkata
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            --location '${{ secrets.API_URL }}/api/cron/send-daily-push' \
+            --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+            --header 'Cache-Control: no-cache')
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response: $body"
+          echo "HTTP Code: $http_code"
+
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "✅ Push notification sent successfully"
+          else
+            echo "❌ Failed to send push notification"
+            exit 1
+          fi
