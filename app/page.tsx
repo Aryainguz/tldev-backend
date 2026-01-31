@@ -60,6 +60,9 @@ export default function LandingPage() {
                 padding: "40px",
                 maxWidth: "480px",
                 width: "90%",
+                maxHeight: "90vh",
+                overflow: "auto",
+                margin: "0 auto",
                 zIndex: 101,
                 boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
               }}
@@ -245,7 +248,7 @@ export default function LandingPage() {
             fontSize: "clamp(24px, 5vw, 48px)",
             fontWeight: 500,
             textAlign: "center",
-            color: "rgba(255,255,255,0.5)",
+            color: "rgba(255,255,255,0.7)",
             marginBottom: "24px",
           }}
         >
@@ -259,7 +262,7 @@ export default function LandingPage() {
           style={{
             fontSize: "18px",
             textAlign: "center",
-            color: "rgba(255,255,255,0.4)",
+            color: "rgba(255,255,255,0.6)",
             maxWidth: "600px",
             lineHeight: 1.6,
             marginBottom: "48px",
@@ -301,14 +304,16 @@ export default function LandingPage() {
               padding: "16px 32px",
               background: isPlatformAvailable("ios")
                 ? "#fff"
-                : "rgba(255,255,255,0.3)",
-              color: isPlatformAvailable("ios") ? "#000" : "#666",
+                : "rgba(255,255,255,0.15)",
+              color: isPlatformAvailable("ios")
+                ? "#000"
+                : "rgba(255,255,255,0.8)",
               borderRadius: "999px",
               fontWeight: 600,
               fontSize: "16px",
               border: "none",
               cursor: "pointer",
-              opacity: isPlatformAvailable("ios") ? 1 : 0.6,
+              opacity: 1,
             }}
           >
             <AppleIcon />
