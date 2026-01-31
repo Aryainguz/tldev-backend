@@ -21,6 +21,7 @@ const techShots = [
 
 export default function LandingPage() {
   const [showComingSoonModal, setShowComingSoonModal] = useState(false);
+  const [showAndroidModal, setShowAndroidModal] = useState(false);
 
   return (
     <div style={{ background: "#09090b", minHeight: "100vh", color: "#fff" }}>
@@ -106,6 +107,109 @@ export default function LandingPage() {
                 </p>
                 <motion.button
                   onClick={() => setShowComingSoonModal(false)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{
+                    width: "100%",
+                    padding: "14px 32px",
+                    background: "#fff",
+                    color: "#000",
+                    border: "none",
+                    borderRadius: "999px",
+                    fontWeight: 600,
+                    fontSize: "16px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Got it
+                </motion.button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Android Coming Soon Modal */}
+      <AnimatePresence>
+        {showAndroidModal && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAndroidModal(false)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0, 0, 0, 0.8)",
+                backdropFilter: "blur(8px)",
+                zIndex: 100,
+                cursor: "pointer",
+              }}
+            />
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              style={{
+                position: "fixed",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                background: "linear-gradient(145deg, #1a1a1d 0%, #09090b 100%)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "24px",
+                padding: "40px",
+                maxWidth: "480px",
+                width: "90%",
+                maxHeight: "90vh",
+                overflow: "auto",
+                margin: "0 auto",
+                zIndex: 101,
+                boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+              }}
+            >
+              <div style={{ textAlign: "center" }}>
+                <div
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    margin: "0 auto 24px",
+                    background: "rgba(0,212,255,0.1)",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <PlayStoreIcon />
+                </div>
+                <h3
+                  style={{
+                    fontSize: "28px",
+                    fontWeight: 700,
+                    marginBottom: "12px",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Android Coming Soon
+                </h3>
+                <p
+                  style={{
+                    fontSize: "16px",
+                    color: "rgba(255,255,255,0.6)",
+                    lineHeight: 1.6,
+                    marginBottom: "24px",
+                  }}
+                >
+                  We're building the Android APK right now. It will be ready for
+                  direct download in a few minutes. Check back shortly!
+                </p>
+                <motion.button
+                  onClick={() => setShowAndroidModal(false)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   style={{
@@ -320,15 +424,8 @@ export default function LandingPage() {
             Download on iOS
           </motion.button>
           <motion.a
-            href={getDownloadUrl("android")}
-            onClick={(e) => {
-              if (!isPlatformAvailable("android")) {
-                e.preventDefault();
-                alert(
-                  "Android build coming soon! Check back in a few minutes."
-                );
-              }
-            }}
+            href="/app.apk"
+            download="TLDev.apk"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             style={{
@@ -336,19 +433,15 @@ export default function LandingPage() {
               alignItems: "center",
               gap: "12px",
               padding: "16px 32px",
-              background: isPlatformAvailable("android")
-                ? "rgba(255,255,255,0.05)"
-                : "rgba(255,255,255,0.02)",
-              color: isPlatformAvailable("android") ? "#fff" : "#666",
+              background: "rgba(255,255,255,0.05)",
+              color: "#fff",
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: "999px",
               fontWeight: 600,
               fontSize: "16px",
+              cursor: "pointer",
               textDecoration: "none",
-              cursor: isPlatformAvailable("android")
-                ? "pointer"
-                : "not-allowed",
-              opacity: isPlatformAvailable("android") ? 1 : 0.6,
+              opacity: 1,
             }}
           >
             <PlayStoreIcon />
@@ -772,7 +865,8 @@ export default function LandingPage() {
               Download on iOS
             </motion.a>
             <motion.a
-              href="#"
+              href="/app.apk"
+              download="TLDev.apk"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               style={{
