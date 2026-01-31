@@ -20,8 +20,111 @@ const techShots = [
 ];
 
 export default function LandingPage() {
+  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
+
   return (
     <div style={{ background: "#09090b", minHeight: "100vh", color: "#fff" }}>
+      {/* Coming Soon Modal */}
+      <AnimatePresence>
+        {showComingSoonModal && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowComingSoonModal(false)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0, 0, 0, 0.8)",
+                backdropFilter: "blur(8px)",
+                zIndex: 100,
+                cursor: "pointer",
+              }}
+            />
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              style={{
+                position: "fixed",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                background: "linear-gradient(145deg, #1a1a1d 0%, #09090b 100%)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "24px",
+                padding: "40px",
+                maxWidth: "480px",
+                width: "90%",
+                zIndex: 101,
+                boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+              }}
+            >
+              <div style={{ textAlign: "center" }}>
+                <div
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    margin: "0 auto 24px",
+                    background: "rgba(0,212,255,0.1)",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <AppleIcon />
+                </div>
+                <h3
+                  style={{
+                    fontSize: "28px",
+                    fontWeight: 700,
+                    marginBottom: "12px",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  iOS Coming Soon
+                </h3>
+                <p
+                  style={{
+                    fontSize: "16px",
+                    color: "rgba(255,255,255,0.6)",
+                    lineHeight: 1.6,
+                    marginBottom: "24px",
+                  }}
+                >
+                  We're currently building the iOS version. It will be available
+                  via TestFlight shortly. Meanwhile, check out the Android
+                  version!
+                </p>
+                <motion.button
+                  onClick={() => setShowComingSoonModal(false)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{
+                    width: "100%",
+                    padding: "14px 32px",
+                    background: "#fff",
+                    color: "#000",
+                    border: "none",
+                    borderRadius: "999px",
+                    fontWeight: 600,
+                    fontSize: "16px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Got it
+                </motion.button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Navbar */}
       <nav
         style={{
@@ -178,12 +281,12 @@ export default function LandingPage() {
             justifyContent: "center",
           }}
         >
-          <motion.a
-            href={getDownloadUrl("ios")}
-            onClick={(e) => {
+          <motion.button
+            onClick={() => {
               if (!isPlatformAvailable("ios")) {
-                e.preventDefault();
-                alert("iOS build coming soon! Check back in a few minutes.");
+                setShowComingSoonModal(true);
+              } else {
+                window.open(getDownloadUrl("ios"), "_blank");
               }
             }}
             whileHover={{
@@ -203,14 +306,14 @@ export default function LandingPage() {
               borderRadius: "999px",
               fontWeight: 600,
               fontSize: "16px",
-              textDecoration: "none",
-              cursor: isPlatformAvailable("ios") ? "pointer" : "not-allowed",
+              border: "none",
+              cursor: "pointer",
               opacity: isPlatformAvailable("ios") ? 1 : 0.6,
             }}
           >
             <AppleIcon />
             Download on iOS
-          </motion.a>
+          </motion.button>
           <motion.a
             href={getDownloadUrl("android")}
             onClick={(e) => {
