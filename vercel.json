@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/generate-tips",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/jobs/enrich-tip",
+      "schedule": "15 6 * * *"
+    },
+    {
+      "path": "/api/cron/send-daily-push",
+      "schedule": "30 6 * * *"
+    }
+  ]
+}
