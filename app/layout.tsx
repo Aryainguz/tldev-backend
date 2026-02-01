@@ -71,12 +71,9 @@ export const metadata: Metadata = {
   // Twitter
   twitter: {
     card: "summary_large_image",
-    site: "@tldevapp",
-    creator: "@tldevapp",
-    title: "TL;Dev — Be ∞× Dev",
-    description:
-      "One-Shot Tech Learning for Serious Engineers. Daily tech shots on system design, backend, performance & more.",
-    images: ["/twitter-image"],
+    title: "TL;Dev | Tech In Shorts",
+    description: "Stop doom scrolling start with real knowledge delivered in shorts.",
+    image: "/IMG_6314.png",
   },
 
   // Icons
