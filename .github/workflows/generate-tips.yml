@@ -1,0 +1,93 @@
+name: Generate Tips Cron
+
+on:
+  schedule:
+    # Run 6 times daily at IST peak hours (UTC+5:30)
+    # 6:00 AM IST = 0:30 UTC
+    - cron: "30 0 * * *"
+    # 9:00 AM IST = 3:30 UTC
+    - cron: "30 3 * * *"
+    # 12:00 PM IST = 6:30 UTC
+    - cron: "30 6 * * *"
+    # 3:00 PM IST = 9:30 UTC
+    - cron: "30 9 * * *"
+    # 6:00 PM IST = 12:30 UTC
+    - cron: "30 12 * * *"
+    # 9:00 PM IST = 15:30 UTC
+    - cron: "30 15 * * *"
+  workflow_dispatch:
+    inputs:
+      skip_enrich:
+        description: "Skip enrichment step"
+        required: false
+        default: "false"
+        type: boolean
+      tips_count:
+        description: "Number of tips to generate (default: 5)"
+        required: false
+        default: "5"
+        type: string
+
+env:
+  API_BASE_URL: ${{ secrets.API_URL }}
+  CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+jobs:
+  generate-tips:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Generate Tips (5 per batch)
+        run: |
+          echo "🚀 Starting tip generation..."
+
+          response=$(curl -s -w "\n%{http_code}" -X GET \
+            "${{ env.API_BASE_URL }}/api/cron/generate-tips" \
+            -H "Authorization: Bearer ${{ env.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 120)
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response code: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "❌ Generation failed with status $http_code"
+            exit 1
+          fi
+
+          echo "✅ Tips generated successfully"
+
+      - name: Wait for AI to complete
+        run: sleep 10
+
+      - name: Enrich Tips (publish drafts)
+        if: ${{ github.event.inputs.skip_enrich != 'true' }}
+        run: |
+          echo "🎨 Starting tip enrichment..."
+
+          response=$(curl -s -w "\n%{http_code}" -X GET \
+            "${{ env.API_BASE_URL }}/api/jobs/enrich-tip" \
+            -H "Authorization: Bearer ${{ env.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 120)
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response code: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "⚠️ Enrichment returned status $http_code (may be partial)"
+          else
+            echo "✅ Tips enriched successfully"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "📊 Cron job completed at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"

@@ -2,24 +2,45 @@ name: Hourly Push Notifications
 
 on:
   schedule:
-    # Runs every hour from 9 AM to 11 PM IST (Indian Standard Time)
-    # IST = UTC + 5:30, so we run at :30 minutes to align with IST hours
-    # 9 AM IST = 3:30 UTC, 11 PM IST = 17:30 UTC
+    # 30 notifications per day from 6 AM to 11:30 PM IST
+    # IST = UTC + 5:30, so we need to run from 00:30 UTC to 18:00 UTC
+    # Running every 30 minutes to get 30 slots
+    - cron: "30 0 * * *" # 6:00 AM IST
+    - cron: "0 1 * * *" # 6:30 AM IST
+    - cron: "30 1 * * *" # 7:00 AM IST
+    - cron: "0 2 * * *" # 7:30 AM IST
+    - cron: "30 2 * * *" # 8:00 AM IST
+    - cron: "0 3 * * *" # 8:30 AM IST
     - cron: "30 3 * * *" # 9:00 AM IST
+    - cron: "0 4 * * *" # 9:30 AM IST
     - cron: "30 4 * * *" # 10:00 AM IST
+    - cron: "0 5 * * *" # 10:30 AM IST
     - cron: "30 5 * * *" # 11:00 AM IST
+    - cron: "0 6 * * *" # 11:30 AM IST
     - cron: "30 6 * * *" # 12:00 PM IST
+    - cron: "0 7 * * *" # 12:30 PM IST
     - cron: "30 7 * * *" # 1:00 PM IST
+    - cron: "0 8 * * *" # 1:30 PM IST
     - cron: "30 8 * * *" # 2:00 PM IST
+    - cron: "0 9 * * *" # 2:30 PM IST
     - cron: "30 9 * * *" # 3:00 PM IST
+    - cron: "0 10 * * *" # 3:30 PM IST
     - cron: "30 10 * * *" # 4:00 PM IST
+    - cron: "0 11 * * *" # 4:30 PM IST
     - cron: "30 11 * * *" # 5:00 PM IST
+    - cron: "0 12 * * *" # 5:30 PM IST
     - cron: "30 12 * * *" # 6:00 PM IST
+    - cron: "0 13 * * *" # 6:30 PM IST
     - cron: "30 13 * * *" # 7:00 PM IST
+    - cron: "0 14 * * *" # 7:30 PM IST
     - cron: "30 14 * * *" # 8:00 PM IST
+    - cron: "0 15 * * *" # 8:30 PM IST
     - cron: "30 15 * * *" # 9:00 PM IST
+    - cron: "0 16 * * *" # 9:30 PM IST
     - cron: "30 16 * * *" # 10:00 PM IST
+    - cron: "0 17 * * *" # 10:30 PM IST
     - cron: "30 17 * * *" # 11:00 PM IST
+    - cron: "0 18 * * *" # 11:30 PM IST
   workflow_dispatch: # Allow manual trigger for testing
 
 jobs:
