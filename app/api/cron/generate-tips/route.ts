@@ -24,7 +24,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateTips } from "@/lib/ai";
 
-const TIPS_PER_DAY = 15;
+const TIPS_PER_DAY = 30;
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
   try {
     // Step 1: Generate tips via AI (this is the only heavy operation)
     console.log("[generate-tips] Starting AI generation...");
-    const aiResult = await generateTips(TIPS_PER_DAY);
+    const aiResult = await generateTips(TIPS_PER_BATCH);
     console.log(`[generate-tips] AI generated ${aiResult.tips.length} tips`);
 
     if (aiResult.error || aiResult.tips.length === 0) {
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
             finished: new Date().toISOString(),
             model: aiResult.model,
             successCount: 0,
-            failCount: TIPS_PER_DAY,
+            failCount: TIPS_PER_BATCH,
             durationMs: Date.now() - startTime,
           },
         },
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
       console.log("[generate-tips] Job failed: No tips generated");
       return NextResponse.json(
         { success: false, jobId: job.id, errors },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -96,6 +96,7 @@ export async function GET(request: NextRequest) {
         data: {
           tipText: generatedTip.tip_text,
           tipSummary: generatedTip.tip_summary,
+          tipDetail: generatedTip.tip_detail,
           codeSnippet: generatedTip.code_snippet,
           category: generatedTip.category,
           tags: generatedTip.tags,
@@ -106,7 +107,7 @@ export async function GET(request: NextRequest) {
           aiModel: aiResult.model,
           jobId: job.id,
         },
-      })
+      }),
     );
 
     const createdTips = await Promise.all(tipCreatePromises);
@@ -182,7 +183,7 @@ export async function GET(request: NextRequest) {
         error: error instanceof Error ? error.message : "Unknown error",
         durationMs,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

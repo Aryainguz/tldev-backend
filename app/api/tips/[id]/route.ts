@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
 
@@ -14,6 +14,7 @@ export async function GET(
         id: true,
         tipText: true,
         tipSummary: true,
+        tipDetail: true,
         codeSnippet: true,
         category: true,
         tags: true,
@@ -41,6 +42,7 @@ export async function GET(
       id: tip.id,
       tip_text: tip.tipText,
       tip_summary: tip.tipSummary,
+      tip_detail: tip.tipDetail,
       code_snippet: tip.codeSnippet,
       category: tip.category,
       tags: tip.tags,

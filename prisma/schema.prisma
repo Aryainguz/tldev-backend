@@ -35,6 +35,7 @@ model Tip {
     id           String    @id @default(auto()) @map("_id") @db.ObjectId
     tipText      String
     tipSummary   String?
+    tipDetail    String?
     codeSnippet  String?
     category     String
     tags         String[]

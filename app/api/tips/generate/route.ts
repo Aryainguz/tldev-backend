@@ -18,13 +18,13 @@ export async function POST(request: NextRequest) {
 
     const aiResult = await generateTips(
       Math.min(count, 5),
-      category ? [category] : undefined
+      category ? [category] : undefined,
     );
 
     if (aiResult.error || aiResult.tips.length === 0) {
       return NextResponse.json(
         { error: aiResult.error || "Failed to generate tips" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
           data: {
             tipText: tip.tip_text,
             tipSummary: tip.tip_summary,
+            tipDetail: tip.tip_detail,
             codeSnippet: tip.code_snippet,
             category: tip.category,
             tags: tip.tags,
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     console.error("Error generating tips:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

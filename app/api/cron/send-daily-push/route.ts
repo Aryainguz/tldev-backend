@@ -1,25 +1,25 @@
 /**
- * CRON JOB: Send Hourly Push Notifications
+ * CRON JOB: Send Half-Hourly Push Notifications
  *
- * This endpoint sends ONE push notification per hour from 9 AM to 11 PM (12 AM).
- * That's 15 notifications per day, one for each tip generated daily.
+ * This endpoint sends ONE push notification every 30 minutes from 6 AM to 11:30 PM IST.
+ * That's 30 notifications per day, one for each tip generated daily.
  *
- * SCHEDULE: Runs every hour from 9 AM to 11 PM (0 9-23 * * *)
- * - Hour 9 (9 AM) → Tip #1
- * - Hour 10 (10 AM) → Tip #2
+ * SCHEDULE: Runs every 30 minutes from 6 AM to 11:30 PM IST
+ * - Slot 0 (6:00 AM) → Tip #1
+ * - Slot 1 (6:30 AM) → Tip #2
  * - ...
- * - Hour 23 (11 PM) → Tip #15
+ * - Slot 29 (11:30 PM) → Tip #30
  *
  * RESPONSIBILITIES:
  * - Authenticate via CRON_SECRET
- * - Determine current hour slot (9-23 maps to tip index 0-14)
- * - Fetch the specific tip for this hour
+ * - Determine current slot (0-29 based on half-hour intervals)
+ * - Fetch the specific tip for this slot
  * - Send push notification to all users
- * - Track sent notifications to prevent duplicates per hour
+ * - Track sent notifications to prevent duplicates per slot
  *
  * DESIGN PRINCIPLES:
- * - Idempotent: Uses DailyPush model with date+hour unique constraint
- * - Hourly: Each hour gets exactly ONE tip notification
+ * - Idempotent: Uses DailyPush model with date+slot unique constraint
+ * - Half-hourly: Each slot gets exactly ONE tip notification
  * - Observable: Logs and tracks all operations
  */
 
@@ -28,10 +28,10 @@ import { prisma } from "@/lib/prisma";
 import { sendPushNotification, formatTipNotification } from "@/lib/push";
 import { Expo } from "expo-server-sdk";
 
-// Hours when notifications are sent (9 AM to 11 PM IST = 15 hours)
-const START_HOUR = 9;
-const END_HOUR = 23; // 11 PM (last notification)
-const TOTAL_SLOTS = END_HOUR - START_HOUR + 1; // 15 slots
+// Hours when notifications are sent (6 AM to 11:30 PM IST = 30 half-hour slots)
+const START_HOUR = 6;
+const END_HOUR = 23; // 11 PM (last hour)
+const TOTAL_SLOTS = 30; // 30 notifications per day
 
 // IST timezone offset
 const IST_OFFSET_HOURS = 5;
@@ -57,12 +57,20 @@ function getCurrentHour(): number {
   return getISTDate().getHours();
 }
 
-// Get tip index for a given hour (0-14)
-function getTipIndexForHour(hour: number): number {
-  return hour - START_HOUR;
+// Get current minute in IST (0-59)
+function getCurrentMinute(): number {
+  return getISTDate().getMinutes();
 }
 
-// Check if current hour is within notification window
+// Get slot index for current time (0-29 for 30 half-hour slots)
+// Slot 0 = 6:00 AM, Slot 1 = 6:30 AM, ..., Slot 29 = 11:30 PM
+function getSlotIndex(hour: number, minute: number): number {
+  const baseSlot = (hour - START_HOUR) * 2; // 2 slots per hour
+  const halfHourOffset = minute >= 30 ? 1 : 0;
+  return baseSlot + halfHourOffset;
+}
+
+// Check if current time is within notification window
 function isWithinNotificationWindow(hour: number): boolean {
   return hour >= START_HOUR && hour <= END_HOUR;
 }
@@ -71,6 +79,8 @@ export async function GET(request: NextRequest) {
   const startTime = Date.now();
   const today = getTodayDateString();
   const currentHour = getCurrentHour();
+  const currentMinute = getCurrentMinute();
+  const currentSlot = getSlotIndex(currentHour, currentMinute);
 
   const headers = new Headers({
     "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -80,7 +90,7 @@ export async function GET(request: NextRequest) {
   });
 
   console.log(
-    `[send-daily-push] Cron started for date: ${today}, hour: ${currentHour}`,
+    `[send-daily-push] Cron started for date: ${today}, hour: ${currentHour}, minute: ${currentMinute}, slot: ${currentSlot}`,
   );
 
   // Authenticate via CRON_SECRET
@@ -95,7 +105,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Check if we're within the notification window (9 AM - 11 PM)
+  // Check if we're within the notification window (6 AM - 11 PM)
   if (!isWithinNotificationWindow(currentHour)) {
     console.log(
       `[send-daily-push] Outside notification window (${START_HOUR}-${END_HOUR}), current hour: ${currentHour}`,
@@ -104,8 +114,9 @@ export async function GET(request: NextRequest) {
       {
         success: true,
         skipped: true,
-        message: `Outside notification window. Notifications run from ${START_HOUR}:00 to ${END_HOUR}:00`,
+        message: `Outside notification window. Notifications run from ${START_HOUR}:00 to ${END_HOUR}:30`,
         currentHour,
+        currentSlot,
         durationMs: Date.now() - startTime,
       },
       { headers },
@@ -113,25 +124,26 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // IDEMPOTENCY CHECK: Has push already been sent for this hour today?
+    // IDEMPOTENCY CHECK: Has push already been sent for this slot today?
+    // Using 'hour' field to store slot index for backwards compatibility
     const existingPush = await prisma.dailyPush.findUnique({
       where: {
         date_hour: {
           date: today,
-          hour: currentHour,
+          hour: currentSlot, // Using slot (0-29) instead of hour
         },
       },
     });
 
     if (existingPush && existingPush.status === "completed") {
       console.log(
-        `[send-daily-push] Push already sent for ${today} hour ${currentHour}, skipping`,
+        `[send-daily-push] Push already sent for ${today} slot ${currentSlot}, skipping`,
       );
       return NextResponse.json(
         {
           success: true,
           skipped: true,
-          message: `Push already sent for ${today} at ${currentHour}:00`,
+          message: `Push already sent for ${today} at slot ${currentSlot}`,
           existingPush: {
             sentCount: existingPush.sentCount,
             errorCount: existingPush.errorCount,
@@ -156,8 +168,8 @@ export async function GET(request: NextRequest) {
           lt: todayEnd,
         },
       },
-      orderBy: { createdAt: "asc" }, // Oldest first so tip #1 goes at 9 AM
-      take: TOTAL_SLOTS, // Get up to 15 tips
+      orderBy: { createdAt: "asc" }, // Oldest first so tip #1 goes at 6 AM
+      take: TOTAL_SLOTS, // Get up to 30 tips
     });
 
     if (publishedTips.length === 0) {
@@ -173,8 +185,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Determine which tip to send based on current hour
-    const tipIndex = getTipIndexForHour(currentHour);
+    // Determine which tip to send based on current slot
+    const tipIndex = currentSlot;
 
     if (tipIndex >= publishedTips.length) {
       console.log(
@@ -184,8 +196,9 @@ export async function GET(request: NextRequest) {
         {
           success: true,
           skipped: true,
-          message: `No tip available for hour ${currentHour}. Tips generated: ${publishedTips.length}, slot needed: ${tipIndex + 1}`,
+          message: `No tip available for slot ${currentSlot}. Tips generated: ${publishedTips.length}, slot needed: ${tipIndex + 1}`,
           currentHour,
+          currentSlot,
           tipIndex,
           availableTips: publishedTips.length,
           durationMs: Date.now() - startTime,
@@ -196,20 +209,20 @@ export async function GET(request: NextRequest) {
 
     const tipToSend = publishedTips[tipIndex];
     console.log(
-      `[send-daily-push] Hour ${currentHour} → Sending tip #${tipIndex + 1}: ${tipToSend.id}`,
+      `[send-daily-push] Slot ${currentSlot} (${currentHour}:${currentMinute >= 30 ? "30" : "00"}) → Sending tip #${tipIndex + 1}: ${tipToSend.id}`,
     );
 
-    // Create or update DailyPush record for this hour
+    // Create or update DailyPush record for this slot
     const dailyPush = await prisma.dailyPush.upsert({
       where: {
         date_hour: {
           date: today,
-          hour: currentHour,
+          hour: currentSlot, // Using slot instead of hour
         },
       },
       create: {
         date: today,
-        hour: currentHour,
+        hour: currentSlot, // Using slot instead of hour
         tipId: tipToSend.id,
         tipCount: publishedTips.length,
         status: "sending",

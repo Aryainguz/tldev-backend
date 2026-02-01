@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch image and view more link in parallel
     console.log(
-      `[enrich-tip] Fetching image and view more for: ${tip.category}`
+      `[enrich-tip] Fetching image and view more for: ${tip.category}`,
     );
 
     const [image, viewMore] = await Promise.all([
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
         error: error instanceof Error ? error.message : "Unknown error",
         durationMs: Date.now() - startTime,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -147,8 +147,8 @@ export async function GET(request: NextRequest) {
     // Find all draft tips that need enrichment
     const draftTips = await prisma.tip.findMany({
       where: { status: "draft" },
-      select: { id: true, category: true },
-      take: 50, // Limit to prevent timeout
+      select: { id: true, category: true, tipText: true },
+      take: 10, // Reduced limit to prevent timeout (was 50)
     });
 
     if (draftTips.length === 0) {
@@ -162,31 +162,45 @@ export async function GET(request: NextRequest) {
 
     console.log(`[enrich-tip] Found ${draftTips.length} draft tips to enrich`);
 
-    // Process tips in parallel with concurrency limit
-    const results = await Promise.allSettled(
-      draftTips.map(async (tip) => {
-        const [image, viewMore] = await Promise.all([
-          getUnsplashImage(tip.category).catch(() => null),
-          searchViewMoreLink("", tip.category).catch(() => null),
-        ]);
+    // Process tips sequentially with small batches to avoid rate limits
+    const batchSize = 3;
+    const results: PromiseSettledResult<any>[] = [];
 
-        return prisma.tip.update({
-          where: { id: tip.id },
-          data: {
-            image: image ? (image as any) : undefined,
-            viewMore: viewMore ? (viewMore as any) : undefined,
-            status: "published",
-          },
-        });
-      })
-    );
+    for (let i = 0; i < draftTips.length; i += batchSize) {
+      const batch = draftTips.slice(i, i + batchSize);
+      const batchResults = await Promise.allSettled(
+        batch.map(async (tip) => {
+          const [image, viewMore] = await Promise.all([
+            getUnsplashImage(tip.category).catch(() => null),
+            searchViewMoreLink(tip.tipText || "", tip.category).catch(
+              () => null,
+            ),
+          ]);
+
+          return prisma.tip.update({
+            where: { id: tip.id },
+            data: {
+              image: image ? (image as any) : undefined,
+              viewMore: viewMore ? (viewMore as any) : undefined,
+              status: "published",
+            },
+          });
+        }),
+      );
+      results.push(...batchResults);
+
+      // Small delay between batches to avoid rate limiting
+      if (i + batchSize < draftTips.length) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
 
     const successCount = results.filter((r) => r.status === "fulfilled").length;
     const failCount = results.filter((r) => r.status === "rejected").length;
 
     const durationMs = Date.now() - startTime;
     console.log(
-      `[enrich-tip] Batch complete: ${successCount} success, ${failCount} failed in ${durationMs}ms`
+      `[enrich-tip] Batch complete: ${successCount} success, ${failCount} failed in ${durationMs}ms`,
     );
 
     return NextResponse.json({
@@ -204,7 +218,7 @@ export async function GET(request: NextRequest) {
         error: error instanceof Error ? error.message : "Unknown error",
         durationMs: Date.now() - startTime,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
