@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     description:
       "One-Shot Tech Learning for Serious Engineers. Daily tech shots on system design, backend, performance & more.",
         images: ["/IMG_6314.png"],
-    ],
+    ]
   },
 
   // Twitter
