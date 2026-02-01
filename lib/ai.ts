@@ -104,52 +104,84 @@ export async function generateTips(
   const prompt = `You are a viral tech content creator for TL;Dev, a mobile app for developers.
 Generate ${count} COMPLETELY UNIQUE tech tips that developers can't resist clicking.
 
-CRITICAL - NO DUPLICATES:
-- Each tip MUST cover a DIFFERENT topic/concept
-- Use unique_topic field to ensure variety (e.g., "python-walrus-operator", "react-suspense-streaming")
-- NEVER repeat topics like "pathlib", "console.log", etc. across tips
-- Cover diverse areas: new language features, frameworks, tools, patterns, optimizations, security, testing, DevOps
+═══════════════════════════════════════════════════════════════
+STEP 1: UNIQUENESS SELF-CHECK (MANDATORY)
+═══════════════════════════════════════════════════════════════
+Before generating ANY content, you MUST:
+1. List all ${count} unique_topic slugs you plan to use
+2. Verify NONE overlap with each other
+3. For EACH tip, provide a 1-line reason: "Why this is fresh: [reason]"
 
-REQUIREMENTS:
-- tip_text: VIRAL clickbait headline that makes devs STOP scrolling. Max 60 chars.
-  Write like tech Twitter/X influencers. Use company names, bold claims, imperatives.
-  
-  PERFECT examples (copy this style EXACTLY):
-  - "Zomato serves 1 lakh orders with Kafka. Here's how"
-  - "Protobuf can save you infra. Ditch JSON now"
-  - "Netflix ditched REST for GraphQL. You should too"
-  - "Stripe processes $1T with this DB pattern"
-  - "Stop writing if-else. Senior devs use this"
-  - "Uber cut latency 40% with one Redis trick"
-  - "Your Docker images are 10x too big. Fix it"
-  - "Google banned this JavaScript pattern. Here's why"
-  - "This Python one-liner will mass your mind"
-  - "AWS bill too high? Blame your queries"
-  
-  BAD examples (NEVER do this):
-  - "Unlock Python's pathlib magic!" (too generic, boring)
-  - "Learn about React Suspense" (no hook, no urgency)
-  - "Introduction to TypeScript satisfies" (sounds like docs)
-  
-- tip_summary: Concise feed preview (80-150 chars)
-  - 1-2 sentences that expand on the headline
-  - Give the core insight without full explanation
-  - This appears under the title on feed cards
-  
-- tip_detail: In-depth article content (500-1000 chars)
-  - Start from scratch - assume reader is new to this topic
-  - Explain the concept, why it exists, what problem it solves
-  - Include practical use cases and when to use it
-  - Add tips, gotchas, or best practices
-  - This appears in the expanded modal view
-  - Write in an engaging, educational tone
-  
-- code_snippet: Practical code example that demonstrates the concept. null only if purely conceptual
-- category: One of: ${selectedCategories.join(", ")}
-- tags: 2-4 relevant lowercase tags
-- unique_topic: Unique slug identifying this specific topic (e.g., "typescript-satisfies-operator")
+═══════════════════════════════════════════════════════════════
+STEP 2: TOPIC SELECTION RULES
+═══════════════════════════════════════════════════════════════
+ALLOWED - Pick from these FRESH areas (combine across categories!):
+- Edge + AI: "RAG on Cloudflare Workers", "Vector search at edge"
+- Rust + Web: "Rust WASM components", "Tauri vs Electron"
+- Go + Cloud: "Go Lambda cold starts", "Go + DynamoDB single-table"
+- Database + Performance: "Postgres partial indexes", "SQLite WAL mode"
+- Security + API: "OAuth 2.1 changes", "API key rotation strategies"
+- Testing + AI: "LLM output testing", "Snapshot testing for AI"
+- Mobile + Performance: "React Native Fabric renderer", "Hermes engine internals"
+- Frontend + Edge: "Astro hybrid rendering", "Qwik resumability"
+- DevOps + Security: "SLSA compliance", "Sigstore for containers"
+- Observability + Cost: "FinOps for cloud", "Cardinality explosion fixes"
 
-Generate exactly ${count} tips with MAXIMUM variety. Each must be a DIFFERENT topic!`;
+FORBIDDEN - Never repeat the same TECHNOLOGY twice in ${count} tips:
+- If you use "Cloudflare" in tip 1, NO other tip can mention Cloudflare
+- If you use "PostgreSQL" in tip 1, NO other tip can mention PostgreSQL
+- Each tip = unique primary technology
+
+═══════════════════════════════════════════════════════════════
+STEP 3: CONTENT STRUCTURE
+═══════════════════════════════════════════════════════════════
+
+tip_text (HEADLINE) - Max 60 chars, MUST follow ONE of these patterns:
+Pattern A: "[Company] does X. Here's how" 
+Pattern B: "[Tech] is [surprising claim]. Proof inside"
+Pattern C: "Your [thing] is broken. [Solution]"
+Pattern D: "[Number]x faster/cheaper with [tech]"
+
+BANNED headline words: "ultimate", "insane", "amazing", "awesome", "powerful", "magic"
+REQUIRED: Specific outcome or number in EVERY headline
+
+tip_summary (80-150 chars):
+- Expand the headline with ONE concrete benefit
+- Include the "what" and "why" in 1-2 sentences
+
+tip_detail (500-800 chars) - MUST follow this structure:
+1. HOOK (1-2 sentences): Start with a problem or surprising fact
+2. TENSION (2-3 sentences): Why current solutions fail or what most devs get wrong
+3. PAYOFF (3-4 sentences): The solution, how it works, key insight
+4. WHEN NOT TO USE (1-2 sentences): Clear anti-pattern or limitation
+5. FAILURE STORY (1 sentence): "Common mistake: [specific error]"
+6. TAKEAWAY (1 line): "TL;DR: [actionable 1-liner]"
+
+code_snippet:
+- MUST specify language in first line as comment: // JavaScript, # Python, etc.
+- Choose ONE format: minimal runnable (5-15 lines) OR pseudo-code (clear structure)
+- null ONLY for pure architecture/process topics
+
+═══════════════════════════════════════════════════════════════
+STEP 4: CLAIM VALIDATION
+═══════════════════════════════════════════════════════════════
+For ANY numerical claim (speed, cost, percentage), you MUST:
+- Add qualifier: "(benchmark-based)" OR "(production-observed)" OR "(community-reported)"
+- If no source possible, use ranges: "2-5x faster" instead of exact numbers
+
+═══════════════════════════════════════════════════════════════
+GENERATE EXACTLY ${count} TIPS NOW
+═══════════════════════════════════════════════════════════════
+Categories to use: ${selectedCategories.join(", ")}
+
+Output format for each tip:
+- tip_text: Viral headline (pattern A/B/C/D)
+- tip_summary: 1-2 sentence expansion
+- tip_detail: Hook → Tension → Payoff → When NOT → Failure → Takeaway
+- code_snippet: With language comment, or null
+- category: From list above
+- tags: 2-4 lowercase
+- unique_topic: Unique slug (verify not banned!)`;
 
   const { model, modelId } = getModel();
 
