@@ -174,7 +174,7 @@ Generate exactly ${count} tips with MAXIMUM variety. Each must be a DIFFERENT to
       tip_text: tip.tip_text,
       tip_summary: tip.tip_summary,
       tip_detail: tip.tip_detail,
-      code_snippet: tip.code_snippet,
+      code_snippet: tip.code_snippet ?? null,
       category: tip.category,
       tags: tip.tags,
       unique_topic: tip.unique_topic,
