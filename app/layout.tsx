@@ -57,26 +57,15 @@ export const metadata: Metadata = {
     title: "TL;Dev — Be ∞× Dev",
     description:
       "One-Shot Tech Learning for Serious Engineers. Daily tech shots on system design, backend, performance & more.",
-    images: [
-      {
-        url: "/opengraph-image",
-        width: 1200,
-        height: 630,
-        alt: "TL;Dev — One-Shot Tech Learning for Serious Engineers",
-        type: "image/png",
-      },
-    ],
+        images: ["/IMG_6314.png"]
   },
 
   // Twitter
   twitter: {
     card: "summary_large_image",
-    site: "@tldevapp",
-    creator: "@tldevapp",
-    title: "TL;Dev — Be ∞× Dev",
-    description:
-      "One-Shot Tech Learning for Serious Engineers. Daily tech shots on system design, backend, performance & more.",
-    images: ["/twitter-image"],
+    title: "TL;Dev | Tech In Shorts",
+    description: "Stop doom scrolling start with real knowledge delivered in shorts.",
+    images: ["/IMG_6314.png"],
   },
 
   // Icons
