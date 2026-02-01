@@ -136,13 +136,28 @@ FORBIDDEN - Never repeat the same TECHNOLOGY twice in ${count} tips:
 STEP 3: CONTENT STRUCTURE
 ═══════════════════════════════════════════════════════════════
 
-tip_text (HEADLINE) - Max 60 chars, MUST follow ONE of these patterns:
-Pattern A: "[Company] does X. Here's how" 
-Pattern B: "[Tech] is [surprising claim]. Proof inside"
-Pattern C: "Your [thing] is broken. [Solution]"
-Pattern D: "[Number]x faster/cheaper with [tech]"
+tip_text (HEADLINE) - Max 60 chars, use VARIETY in endings:
+CRITICAL: Each tip MUST use a DIFFERENT ending phrase. NEVER repeat!
 
-BANNED headline words: "ultimate", "insane", "amazing", "awesome", "powerful", "magic"
+Available patterns (use each ONLY ONCE across all ${count} tips):
+- "[Company] does X. Here's how"
+- "[Tech] cuts [metric] by [%]. See why"
+- "Your [thing] is broken. Fix it"
+- "[Number]x faster with [tech]"
+- "Stop using [old]. Try [new]"
+- "[Tech] secret [company] won't tell you"
+- "I switched to [tech]. Never going back"
+- "[Tech] in 2026: What changed"
+- "The [tech] mistake costing you [outcome]"
+- "Why [company] abandoned [old] for [new]"
+- "[Tech] is dead. Long live [new]"
+- "Boost [metric] with [tech] now"
+- "The truth about [tech] performance"
+- "How [company] scales with [tech]"
+- "The [tech] hack saving [time/money]"
+
+Try to use numbers, company names, and specific outcomes and feel free to try more patterns as long as they are unique.
+BANNED words: "ultimate", "insane", "amazing", "awesome", "powerful", "magic"
 REQUIRED: Specific outcome or number in EVERY headline
 
 tip_summary (80-150 chars):
