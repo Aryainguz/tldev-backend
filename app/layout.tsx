@@ -73,7 +73,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "TL;Dev | Tech In Shorts",
     description: "Stop doom scrolling start with real knowledge delivered in shorts.",
-    image: "/IMG_6314.png",
+    images: ["/IMG_6314.png"],
   },
 
   // Icons
