@@ -45,39 +45,61 @@ const TIP_CATEGORIES = [
   "Mobile",
 ];
 
+const HEADLINE_PATTERNS = [
+  "[Company] does X. Here's how",
+  "[Tech] cuts [metric] by [%]. See why",
+  "Your [thing] is broken. Fix it",
+  "[Number]x faster with [tech]",
+  "Stop using [old]. Try [new]",
+  "[Tech] secret [company] won't tell you",
+  "I switched to [tech]. Never going back",
+  "[Tech] in 2026: What changed",
+  "The [tech] mistake costing you [outcome]",
+  "Why [company] abandoned [old] for [new]",
+  "[Tech] is dead. Long live [new]",
+  "Boost [metric] with [tech] now",
+  "The truth about [tech] performance",
+  "How [company] scales with [tech]",
+  "The [tech] hack saving [time/money]",
+];
+
 const TipSchema = z.object({
   tip_text: z
     .string()
     .max(150)
-    .describe(
-      "Viral clickbait headline - bold claims, company names, urgency. Max 60 chars ideal",
-    ),
+    .describe("Viral headline max 60 chars, specific outcome/number required"),
   tip_summary: z
     .string()
     .max(400)
-    .describe(
-      "Concise feed preview - 1-2 sentences explaining the key insight (80-150 chars ideal)",
-    ),
+    .describe("80-150 chars, 1-2 sentences with what + benefit"),
   tip_detail: z
     .string()
     .max(3000)
     .describe(
-      "In-depth article explaining the topic - what it is, why it matters, practical examples (500-1000 chars ideal)",
+      "500-800 chars: HOOK → TENSION → PAYOFF → WHEN_NOT → FAILURE → TAKEAWAY",
     ),
   code_snippet: z
     .string()
     .nullable()
     .optional()
     .describe(
-      "Practical code example proving the claim. Can be null if conceptual.",
+      "Language comment first line, 5-15 lines runnable or pseudo-code, null if architectural",
     ),
   category: z.enum(TIP_CATEGORIES as [string, ...string[]]),
   tags: z.array(z.string()).max(10).describe("2-4 lowercase tags"),
-  unique_topic: z
+  unique_topic: z.string().describe("Unique slug e.g. 'rust-wasm-components'"),
+  primary_tech: z
     .string()
-    .describe(
-      "Unique identifier for this topic to avoid duplicates e.g. 'react-usememo-optimization' or 'docker-multistage-builds'",
-    ),
+    .describe("Single primary technology anchor for this tip"),
+  headline_pattern: z.string().describe("The headline pattern used"),
+  claim_provenance: z
+    .enum([
+      "benchmark-based",
+      "production-observed",
+      "community-reported",
+      "estimated-range",
+    ])
+    .describe("Source type for any numeric claims"),
 });
 
 const TipsArraySchema = z.array(TipSchema);
@@ -96,107 +118,88 @@ export interface GeneratedTip {
 export async function generateTips(
   count: number = 15,
   categories?: string[],
+  previouslyUsedTechs?: string[],
 ): Promise<{ tips: GeneratedTip[]; model: string; error?: string }> {
   const selectedCategories = categories?.length
     ? categories
     : TIP_CATEGORIES.slice(0, Math.min(count, TIP_CATEGORIES.length));
 
-  const prompt = `You are a viral tech content creator for TL;Dev, a mobile app for developers.
-Generate ${count} COMPLETELY UNIQUE tech tips that developers can't resist clicking.
+  const previousTechsStr = previouslyUsedTechs?.length
+    ? `previously_used_primary_techs = [${previouslyUsedTechs.join(", ")}]. DO NOT reuse these as primary_tech.`
+    : "";
+
+  const prompt = `You are a professional viral tech-content generator for TL;Dev (mobile app for developers).
+Objective: produce EXACTLY ${count} COMPLETELY UNIQUE tips (no duplicates in topic, technology, headline pattern, or primary technology).
 
 ═══════════════════════════════════════════════════════════════
-STEP 1: UNIQUENESS SELF-CHECK (MANDATORY)
+IMPORTANT GLOBAL RULES
 ═══════════════════════════════════════════════════════════════
-Before generating ANY content, you MUST:
-1. List all ${count} unique_topic slugs you plan to use
-2. Verify NONE overlap with each other
-3. For EACH tip, provide a 1-line reason: "Why this is fresh: [reason]"
-
-═══════════════════════════════════════════════════════════════
-STEP 2: TOPIC SELECTION RULES
-═══════════════════════════════════════════════════════════════
-ALLOWED - Pick from these FRESH areas (combine across categories!):
-- Edge + AI: "RAG on Cloudflare Workers", "Vector search at edge"
-- Rust + Web: "Rust WASM components", "Tauri vs Electron"
-- Go + Cloud: "Go Lambda cold starts", "Go + DynamoDB single-table"
-- Database + Performance: "Postgres partial indexes", "SQLite WAL mode"
-- Security + API: "OAuth 2.1 changes", "API key rotation strategies"
-- Testing + AI: "LLM output testing", "Snapshot testing for AI"
-- Mobile + Performance: "React Native Fabric renderer", "Hermes engine internals"
-- Frontend + Edge: "Astro hybrid rendering", "Qwik resumability"
-- DevOps + Security: "SLSA compliance", "Sigstore for containers"
-- Observability + Cost: "FinOps for cloud", "Cardinality explosion fixes"
-
-FORBIDDEN - Never repeat the same TECHNOLOGY twice in ${count} tips:
-- If you use "Cloudflare" in tip 1, NO other tip can mention Cloudflare
-- If you use "PostgreSQL" in tip 1, NO other tip can mention PostgreSQL
-- Each tip = unique primary technology
+- ZERO duplicates: no two tips may share the same primary_tech, unique_topic slug, headline pattern ending, or mention the same core product/company as the primary focus.
+- BANNED WORDS in headlines: ultimate, insane, amazing, awesome, powerful, magic
+${previousTechsStr}
 
 ═══════════════════════════════════════════════════════════════
-STEP 3: CONTENT STRUCTURE
+ALLOWED CATEGORIES: ${selectedCategories.join(", ")}
 ═══════════════════════════════════════════════════════════════
 
-tip_text (HEADLINE) - Max 60 chars, use VARIETY in endings:
-CRITICAL: Each tip MUST use a DIFFERENT ending phrase. NEVER repeat!
+═══════════════════════════════════════════════════════════════
+STEP A — PLANNING (DO THIS FIRST MENTALLY)
+═══════════════════════════════════════════════════════════════
+Before generating, plan ${count} tips ensuring:
+1. Each unique_topic slug is DIFFERENT
+2. Each primary_tech is DIFFERENT (e.g., Cloudflare, PostgreSQL, Rust, Go, tRPC - use each ONLY ONCE)
+3. Each headline_pattern is DIFFERENT
 
-Available patterns (use each ONLY ONCE across all ${count} tips):
-- "[Company] does X. Here's how"
-- "[Tech] cuts [metric] by [%]. See why"
-- "Your [thing] is broken. Fix it"
-- "[Number]x faster with [tech]"
-- "Stop using [old]. Try [new]"
-- "[Tech] secret [company] won't tell you"
-- "I switched to [tech]. Never going back"
-- "[Tech] in 2026: What changed"
-- "The [tech] mistake costing you [outcome]"
-- "Why [company] abandoned [old] for [new]"
-- "[Tech] is dead. Long live [new]"
-- "Boost [metric] with [tech] now"
-- "The truth about [tech] performance"
-- "How [company] scales with [tech]"
-- "The [tech] hack saving [time/money]"
+Available headline patterns (use each ONLY ONCE):
+${HEADLINE_PATTERNS.map((p, i) => `${i + 1}. "${p}"`).join("\n")}
 
-Try to use numbers, company names, and specific outcomes and feel free to try more patterns as long as they are unique.
-BANNED words: "ultimate", "insane", "amazing", "awesome", "powerful", "magic"
-REQUIRED: Specific outcome or number in EVERY headline
+═══════════════════════════════════════════════════════════════
+STEP B — GENERATION RULES (per tip)
+═══════════════════════════════════════════════════════════════
+
+tip_text (HEADLINE):
+- Max 60 chars
+- MUST include specific outcome or number
+- Follow ONE of the headline patterns above (different for each tip)
+- Use company names, bold claims, urgency
 
 tip_summary (80-150 chars):
-- Expand the headline with ONE concrete benefit
-- Include the "what" and "why" in 1-2 sentences
+- 1-2 sentences expanding the headline
+- Include the "what" and "why"
 
-tip_detail (500-800 chars) - MUST follow this structure:
-1. HOOK (1-2 sentences): Start with a problem or surprising fact
-2. TENSION (2-3 sentences): Why current solutions fail or what most devs get wrong
-3. PAYOFF (3-4 sentences): The solution, how it works, key insight
-4. WHEN NOT TO USE (1-2 sentences): Clear anti-pattern or limitation
-5. FAILURE STORY (1 sentence): "Common mistake: [specific error]"
+tip_detail (500-800 chars) - STRICT STRUCTURE:
+1. HOOK (1-2 sentences): Problem or surprising fact
+2. TENSION (2-3 sentences): Why current solutions fail
+3. PAYOFF (3-4 sentences): The solution and key insight
+4. WHEN_NOT_TO_USE (1-2 sentences): Clear anti-pattern
+5. FAILURE_STORY (1 sentence): "Common mistake: [specific error]"
 6. TAKEAWAY (1 line): "TL;DR: [actionable 1-liner]"
 
 code_snippet:
-- MUST specify language in first line as comment: // JavaScript, # Python, etc.
-- Choose ONE format: minimal runnable (5-15 lines) OR pseudo-code (clear structure)
+- First line MUST be language comment: // JavaScript, # Python, -- SQL, etc.
+- 5-15 lines runnable code OR clear pseudo-code
 - null ONLY for pure architecture/process topics
 
-═══════════════════════════════════════════════════════════════
-STEP 4: CLAIM VALIDATION
-═══════════════════════════════════════════════════════════════
-For ANY numerical claim (speed, cost, percentage), you MUST:
-- Add qualifier: "(benchmark-based)" OR "(production-observed)" OR "(community-reported)"
-- If no source possible, use ranges: "2-5x faster" instead of exact numbers
+primary_tech:
+- Single word or bigram (e.g., "Cloudflare", "PostgreSQL", "Rust", "tRPC")
+- MUST be unique across all ${count} tips
+
+headline_pattern:
+- Which pattern from the list you used
+- MUST be unique across all ${count} tips
+
+claim_provenance:
+- For ANY numeric claim, specify: "benchmark-based" | "production-observed" | "community-reported" | "estimated-range"
 
 ═══════════════════════════════════════════════════════════════
 GENERATE EXACTLY ${count} TIPS NOW
 ═══════════════════════════════════════════════════════════════
-Categories to use: ${selectedCategories.join(", ")}
-
-Output format for each tip:
-- tip_text: Viral headline (pattern A/B/C/D)
-- tip_summary: 1-2 sentence expansion
-- tip_detail: Hook → Tension → Payoff → When NOT → Failure → Takeaway
-- code_snippet: With language comment, or null
-- category: From list above
-- tags: 2-4 lowercase
-- unique_topic: Unique slug (verify not banned!)`;
+Remember:
+- ${count} unique primary_tech values
+- ${count} unique headline_pattern values  
+- ${count} unique unique_topic slugs
+- NO banned topics
+- Specific numbers/outcomes in every headline`;
 
   const { model, modelId } = getModel();
 
@@ -209,25 +212,54 @@ Output format for each tip:
       model: model as Parameters<typeof generateObject>[0]["model"],
       schema: TipsArraySchema,
       prompt,
-      temperature: 0.3,
+      temperature: 0.4,
       maxTokens: 16000,
       abortSignal: controller.signal,
     });
 
     clearTimeout(timeoutId);
 
-    const tips: GeneratedTip[] = object.map((tip) => ({
-      id: uuidv4(),
-      tip_text: tip.tip_text,
-      tip_summary: tip.tip_summary,
-      tip_detail: tip.tip_detail,
-      code_snippet: tip.code_snippet ?? null,
-      category: tip.category,
-      tags: tip.tags,
-      unique_topic: tip.unique_topic,
-    }));
+    // Post-generation validation: check for duplicates
+    const seenTopics = new Set<string>();
+    const seenTechs = new Set<string>();
+    const seenPatterns = new Set<string>();
 
-    return { tips, model: modelId };
+    const validTips: GeneratedTip[] = [];
+
+    for (const tip of object) {
+      const topicLower = tip.unique_topic.toLowerCase();
+      const techLower = tip.primary_tech.toLowerCase();
+      const patternLower = tip.headline_pattern.toLowerCase();
+
+      // Skip duplicates
+      if (seenTopics.has(topicLower) || seenTechs.has(techLower)) {
+        console.warn(
+          `[AI] Skipping duplicate: topic=${topicLower}, tech=${techLower}`,
+        );
+        continue;
+      }
+
+      seenTopics.add(topicLower);
+      seenTechs.add(techLower);
+      seenPatterns.add(patternLower);
+
+      validTips.push({
+        id: uuidv4(),
+        tip_text: tip.tip_text,
+        tip_summary: tip.tip_summary,
+        tip_detail: tip.tip_detail,
+        code_snippet: tip.code_snippet ?? null,
+        category: tip.category,
+        tags: tip.tags,
+        unique_topic: tip.unique_topic,
+      });
+    }
+
+    console.log(
+      `[AI] Generated ${object.length} tips, ${validTips.length} unique after dedup`,
+    );
+
+    return { tips: validTips, model: modelId };
   } catch (error) {
     console.error("AI generation error:", error);
     return {
