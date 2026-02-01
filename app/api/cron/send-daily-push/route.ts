@@ -1,26 +1,26 @@
 /**
- * CRON JOB: Send Daily Push Notifications
+ * CRON JOB: Send Hourly Push Notifications
  *
- * This endpoint sends push notifications for the daily tips.
- * It is completely decoupled from content generation.
+ * This endpoint sends ONE push notification per hour from 9 AM to 11 PM (12 AM).
+ * That's 15 notifications per day, one for each tip generated daily.
+ *
+ * SCHEDULE: Runs every hour from 9 AM to 11 PM (0 9-23 * * *)
+ * - Hour 9 (9 AM) → Tip #1
+ * - Hour 10 (10 AM) → Tip #2
+ * - ...
+ * - Hour 23 (11 PM) → Tip #15
  *
  * RESPONSIBILITIES:
  * - Authenticate via CRON_SECRET
- * - Fetch latest published tips (up to 15)
- * - Send ONE push notification per user about available tips
- * - Track sent notifications to prevent duplicates
- * - Handle invalid tokens gracefully
+ * - Determine current hour slot (9-23 maps to tip index 0-14)
+ * - Fetch the specific tip for this hour
+ * - Send push notification to all users
+ * - Track sent notifications to prevent duplicates per hour
  *
  * DESIGN PRINCIPLES:
- * - Idempotent: Uses DailyPush model to prevent duplicate sends per day
- * - Safe: Does not block content generation
- * - Batched: Uses Expo's chunking for efficient delivery
+ * - Idempotent: Uses DailyPush model with date+hour unique constraint
+ * - Hourly: Each hour gets exactly ONE tip notification
  * - Observable: Logs and tracks all operations
- *
- * IMPORTANT:
- * - This is separate from admin push (/api/notifications/send)
- * - Admin push allows arbitrary payloads; this only sends daily tip notifications
- * - Daily limit: 15 tips per day (matching generation)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -28,15 +28,46 @@ import { prisma } from "@/lib/prisma";
 import { sendPushNotification, formatTipNotification } from "@/lib/push";
 import { Expo } from "expo-server-sdk";
 
+// Hours when notifications are sent (9 AM to 11 PM = 15 hours)
+const START_HOUR = 9;
+const END_HOUR = 23; // 11 PM (last notification)
+const TOTAL_SLOTS = END_HOUR - START_HOUR + 1; // 15 slots
+
 // Get today's date string in YYYY-MM-DD format
 function getTodayDateString(): string {
   return new Date().toISOString().split("T")[0];
 }
 
+// Get current hour (0-23)
+function getCurrentHour(): number {
+  return new Date().getHours();
+}
+
+// Get tip index for a given hour (0-14)
+function getTipIndexForHour(hour: number): number {
+  return hour - START_HOUR;
+}
+
+// Check if current hour is within notification window
+function isWithinNotificationWindow(hour: number): boolean {
+  return hour >= START_HOUR && hour <= END_HOUR;
+}
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
   const today = getTodayDateString();
-  console.log(`[send-daily-push] Cron started for date: ${today}`);
+  const currentHour = getCurrentHour();
+
+  const headers = new Headers({
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+    "Surrogate-Control": "no-store",
+  });
+
+  console.log(
+    `[send-daily-push] Cron started for date: ${today}, hour: ${currentHour}`,
+  );
 
   // Authenticate via CRON_SECRET
   const authHeader = request.headers.get("authorization");
@@ -44,30 +75,58 @@ export async function GET(request: NextRequest) {
 
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     console.log("[send-daily-push] Unauthorized request");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers },
+    );
+  }
+
+  // Check if we're within the notification window (9 AM - 11 PM)
+  if (!isWithinNotificationWindow(currentHour)) {
+    console.log(
+      `[send-daily-push] Outside notification window (${START_HOUR}-${END_HOUR}), current hour: ${currentHour}`,
+    );
+    return NextResponse.json(
+      {
+        success: true,
+        skipped: true,
+        message: `Outside notification window. Notifications run from ${START_HOUR}:00 to ${END_HOUR}:00`,
+        currentHour,
+        durationMs: Date.now() - startTime,
+      },
+      { headers },
+    );
   }
 
   try {
-    // IDEMPOTENCY CHECK: Has push already been sent today?
+    // IDEMPOTENCY CHECK: Has push already been sent for this hour today?
     const existingPush = await prisma.dailyPush.findUnique({
-      where: { date: today },
+      where: {
+        date_hour: {
+          date: today,
+          hour: currentHour,
+        },
+      },
     });
 
     if (existingPush && existingPush.status === "completed") {
       console.log(
-        `[send-daily-push] Push already sent today (${today}), skipping`
+        `[send-daily-push] Push already sent for ${today} hour ${currentHour}, skipping`,
       );
-      return NextResponse.json({
-        success: true,
-        skipped: true,
-        message: `Daily push already sent for ${today}`,
-        existingPush: {
-          sentCount: existingPush.sentCount,
-          errorCount: existingPush.errorCount,
-          tipId: existingPush.tipId,
+      return NextResponse.json(
+        {
+          success: true,
+          skipped: true,
+          message: `Push already sent for ${today} at ${currentHour}:00`,
+          existingPush: {
+            sentCount: existingPush.sentCount,
+            errorCount: existingPush.errorCount,
+            tipId: existingPush.tipId,
+          },
+          durationMs: Date.now() - startTime,
         },
-        durationMs: Date.now() - startTime,
-      });
+        { headers },
+      );
     }
 
     // Get today's published tips (created today, status published)
@@ -83,33 +142,61 @@ export async function GET(request: NextRequest) {
           lt: todayEnd,
         },
       },
-      orderBy: { createdAt: "desc" },
-      take: 15,
+      orderBy: { createdAt: "asc" }, // Oldest first so tip #1 goes at 9 AM
+      take: TOTAL_SLOTS, // Get up to 15 tips
     });
 
     if (publishedTips.length === 0) {
       console.log("[send-daily-push] No published tips found for today");
-      return NextResponse.json({
-        success: true,
-        message: "No published tips to notify about",
-        tipCount: 0,
-        durationMs: Date.now() - startTime,
-      });
+      return NextResponse.json(
+        {
+          success: true,
+          message: "No published tips to notify about",
+          tipCount: 0,
+          durationMs: Date.now() - startTime,
+        },
+        { headers },
+      );
     }
 
+    // Determine which tip to send based on current hour
+    const tipIndex = getTipIndexForHour(currentHour);
+
+    if (tipIndex >= publishedTips.length) {
+      console.log(
+        `[send-daily-push] No tip for slot ${tipIndex + 1}. Only ${publishedTips.length} tips available.`,
+      );
+      return NextResponse.json(
+        {
+          success: true,
+          skipped: true,
+          message: `No tip available for hour ${currentHour}. Tips generated: ${publishedTips.length}, slot needed: ${tipIndex + 1}`,
+          currentHour,
+          tipIndex,
+          availableTips: publishedTips.length,
+          durationMs: Date.now() - startTime,
+        },
+        { headers },
+      );
+    }
+
+    const tipToSend = publishedTips[tipIndex];
     console.log(
-      `[send-daily-push] Found ${publishedTips.length} published tips`
+      `[send-daily-push] Hour ${currentHour} → Sending tip #${tipIndex + 1}: ${tipToSend.id}`,
     );
 
-    // Use the first (most recent) tip for the notification
-    const featuredTip = publishedTips[0];
-
-    // Create or update DailyPush record
+    // Create or update DailyPush record for this hour
     const dailyPush = await prisma.dailyPush.upsert({
-      where: { date: today },
+      where: {
+        date_hour: {
+          date: today,
+          hour: currentHour,
+        },
+      },
       create: {
         date: today,
-        tipId: featuredTip.id,
+        hour: currentHour,
+        tipId: tipToSend.id,
         tipCount: publishedTips.length,
         status: "sending",
         startedAt: new Date(),
@@ -143,33 +230,31 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      return NextResponse.json({
-        success: true,
-        message: "No users with push tokens",
-        tipCount: publishedTips.length,
-        userCount: 0,
-        durationMs: Date.now() - startTime,
-      });
+      return NextResponse.json(
+        {
+          success: true,
+          message: "No users with push tokens",
+          tipId: tipToSend.id,
+          tipNumber: tipIndex + 1,
+          hour: currentHour,
+          userCount: 0,
+          durationMs: Date.now() - startTime,
+        },
+        { headers },
+      );
     }
 
     console.log(`[send-daily-push] Sending to ${users.length} users`);
 
     // Format the notification
     const notification = formatTipNotification({
-      tipSummary: featuredTip.tipSummary,
-      tipText: featuredTip.tipText,
-      category: featuredTip.category,
-      image: featuredTip.image as { url: string } | null,
+      tipSummary: tipToSend.tipSummary,
+      tipText: tipToSend.tipText,
+      category: tipToSend.category,
+      image: tipToSend.image as { url: string } | null,
     });
 
-    // Customize title based on tip count
-    const title =
-      publishedTips.length > 1
-        ? `🚀 ${publishedTips.length} fresh tips just dropped!`
-        : notification.title;
-
-    // Send notifications ONE BY ONE as requested
-    // This ensures we can track each send and handle failures individually
+    // Send notifications ONE BY ONE
     let sentCount = 0;
     let errorCount = 0;
     const errors: Array<{ userId: string; error: string }> = [];
@@ -184,13 +269,14 @@ export async function GET(request: NextRequest) {
       try {
         const ticket = await sendPushNotification({
           pushToken: user.pushToken,
-          title,
+          title: notification.title,
           body: notification.body,
           imageUrl: notification.imageUrl,
           data: {
-            tipId: featuredTip.id,
-            type: "daily",
-            tipCount: publishedTips.length,
+            tipId: tipToSend.id,
+            type: "hourly",
+            tipNumber: tipIndex + 1,
+            hour: currentHour,
           },
         });
 
@@ -224,39 +310,45 @@ export async function GET(request: NextRequest) {
         sentCount,
         errorCount,
         summary: {
-          tipId: featuredTip.id,
-          tipCount: publishedTips.length,
+          tipId: tipToSend.id,
+          tipNumber: tipIndex + 1,
+          hour: currentHour,
           totalUsers: users.length,
           sentCount,
           errorCount,
           durationMs: Date.now() - startTime,
-          errors: errors.length > 0 ? errors.slice(0, 10) : undefined, // Store first 10 errors
+          errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
         },
       },
     });
 
     const durationMs = Date.now() - startTime;
     console.log(
-      `[send-daily-push] Completed: ${sentCount} sent, ${errorCount} errors in ${durationMs}ms`
+      `[send-daily-push] Hour ${currentHour} completed: ${sentCount} sent, ${errorCount} errors in ${durationMs}ms`,
     );
 
-    return NextResponse.json({
-      success: true,
-      date: today,
-      tipId: featuredTip.id,
-      tipCount: publishedTips.length,
-      totalUsers: users.length,
-      sentCount,
-      errorCount,
-      durationMs,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        date: today,
+        hour: currentHour,
+        tipId: tipToSend.id,
+        tipNumber: tipIndex + 1,
+        totalTips: publishedTips.length,
+        totalUsers: users.length,
+        sentCount,
+        errorCount,
+        durationMs,
+      },
+      { headers },
+    );
   } catch (error) {
     console.error("[send-daily-push] Error:", error);
 
     // Try to update DailyPush record if it exists
     try {
       await prisma.dailyPush.updateMany({
-        where: { date: today, status: "sending" },
+        where: { date: today, hour: currentHour, status: "sending" },
         data: {
           status: "failed",
           finishedAt: new Date(),
@@ -268,7 +360,7 @@ export async function GET(request: NextRequest) {
     } catch (updateError) {
       console.error(
         "[send-daily-push] Failed to update DailyPush:",
-        updateError
+        updateError,
       );
     }
 
@@ -278,7 +370,7 @@ export async function GET(request: NextRequest) {
         error: error instanceof Error ? error.message : "Unknown error",
         durationMs: Date.now() - startTime,
       },
-      { status: 500 }
+      { status: 500, headers },
     );
   }
 }

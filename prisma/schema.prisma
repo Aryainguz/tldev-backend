@@ -105,11 +105,12 @@ model Action {
     @@index([tipId])
 }
 
-// Track daily push notifications to prevent duplicates
-// Each day can have at most one push per tip
+// Track hourly push notifications to prevent duplicates
+// Each hour slot (9am-12am = 15 slots) gets one tip notification per day
 model DailyPush {
     id         String    @id @default(auto()) @map("_id") @db.ObjectId
     date       String // Format: YYYY-MM-DD, used for idempotency
+    hour       Int // Hour of day (9-23), determines which tip to send
     tipId      String    @db.ObjectId
     tipCount   Int       @default(1) // How many tips were available when sent
     sentCount  Int       @default(0) // How many users received the push
@@ -121,6 +122,6 @@ model DailyPush {
     createdAt  DateTime  @default(now())
     updatedAt  DateTime  @updatedAt
 
-    @@unique([date]) // Only one push per day
+    @@unique([date, hour]) // One push per hour per day
     @@index([tipId])
 }
