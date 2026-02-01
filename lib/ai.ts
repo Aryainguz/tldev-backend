@@ -80,10 +80,9 @@ const TipSchema = z.object({
     ),
   code_snippet: z
     .string()
-    .nullable()
-    .optional()
+    .min(20)
     .describe(
-      "Language comment first line, 5-15 lines runnable or pseudo-code, null if architectural",
+      "REQUIRED: Language comment first line (// JavaScript, # Python, etc), then 5-15 lines of runnable code. ALWAYS provide code.",
     ),
   category: z.enum(TIP_CATEGORIES as [string, ...string[]]),
   tags: z.array(z.string()).max(10).describe("2-4 lowercase tags"),
@@ -109,7 +108,7 @@ export interface GeneratedTip {
   tip_text: string;
   tip_summary: string;
   tip_detail: string;
-  code_snippet: string | null;
+  code_snippet: string;
   category: string;
   tags: string[];
   unique_topic: string;
@@ -175,10 +174,12 @@ tip_detail (500-800 chars) - STRICT STRUCTURE:
 5. FAILURE_STORY (1 sentence): "Common mistake: [specific error]"
 6. TAKEAWAY (1 line): "TL;DR: [actionable 1-liner]"
 
-code_snippet:
+code_snippet (REQUIRED):
 - First line MUST be language comment: // JavaScript, # Python, -- SQL, etc.
-- 5-15 lines runnable code OR clear pseudo-code
-- null ONLY for pure architecture/process topics
+- 5-15 lines of RUNNABLE code demonstrating the tip
+- For Git/DevOps topics: show CLI commands or config files
+- For architecture topics: show pseudo-code or config YAML
+- EVERY tip MUST have code. NO EXCEPTIONS.
 
 primary_tech:
 - Single word or bigram (e.g., "Cloudflare", "PostgreSQL", "Rust", "tRPC")
@@ -248,7 +249,7 @@ Remember:
         tip_text: tip.tip_text,
         tip_summary: tip.tip_summary,
         tip_detail: tip.tip_detail,
-        code_snippet: tip.code_snippet ?? null,
+        code_snippet: tip.code_snippet,
         category: tip.category,
         tags: tip.tags,
         unique_topic: tip.unique_topic,

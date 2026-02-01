@@ -25,7 +25,7 @@ import { prisma } from "@/lib/prisma";
 import { generateTips } from "@/lib/ai";
 
 // Generate 5 tips per cron run - runs 6x daily for 30 tips total
-const TIPS_PER_DAY = 10;
+const TIPS_PER_DAY = 7;
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
