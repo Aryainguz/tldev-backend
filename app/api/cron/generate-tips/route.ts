@@ -24,7 +24,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateTips } from "@/lib/ai";
 
-const TIPS_PER_DAY = 30;
+// Generate 5 tips per cron run - runs 6x daily for 30 tips total
+const TIPS_PER_DAY = 5;
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
   try {
     // Step 1: Generate tips via AI (this is the only heavy operation)
     console.log("[generate-tips] Starting AI generation...");
-    const aiResult = await generateTips(TIPS_PER_BATCH);
+    const aiResult = await generateTips(TIPS_PER_DAY);
     console.log(`[generate-tips] AI generated ${aiResult.tips.length} tips`);
 
     if (aiResult.error || aiResult.tips.length === 0) {
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
             finished: new Date().toISOString(),
             model: aiResult.model,
             successCount: 0,
-            failCount: TIPS_PER_BATCH,
+            failCount: TIPS_PER_DAY,
             durationMs: Date.now() - startTime,
           },
         },
