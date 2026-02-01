@@ -48,28 +48,31 @@ const TIP_CATEGORIES = [
 const TipSchema = z.object({
   tip_text: z
     .string()
-    .max(100)
+    .max(150)
     .describe(
       "Viral clickbait headline - bold claims, company names, urgency. Max 60 chars ideal",
     ),
   tip_summary: z
     .string()
-    .max(250)
+    .max(400)
     .describe(
       "Concise feed preview - 1-2 sentences explaining the key insight (80-150 chars ideal)",
     ),
   tip_detail: z
     .string()
-    .max(2000)
+    .max(3000)
     .describe(
       "In-depth article explaining the topic - what it is, why it matters, practical examples (500-1000 chars ideal)",
     ),
   code_snippet: z
     .string()
     .nullable()
-    .describe("Practical code example proving the claim"),
+    .optional()
+    .describe(
+      "Practical code example proving the claim. Can be null if conceptual.",
+    ),
   category: z.enum(TIP_CATEGORIES as [string, ...string[]]),
-  tags: z.array(z.string()).max(8).describe("2-4 lowercase tags"),
+  tags: z.array(z.string()).max(10).describe("2-4 lowercase tags"),
   unique_topic: z
     .string()
     .describe(
