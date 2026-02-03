@@ -21,10 +21,12 @@ import { prisma } from "@/lib/prisma";
 import { sendPushNotification, formatTipNotification } from "@/lib/push";
 import { Expo } from "expo-server-sdk";
 
-// Notification window: 8 AM to 12 AM (midnight) IST = 16 hours
+// Notification window: 8 AM to 1 AM IST = 17 hours (crosses midnight)
 const START_HOUR = 8;
-const END_HOUR = 24; // 12 AM (midnight) = 24 in 24-hour format for comparison
+const END_HOUR = 1; // 1 AM next day
 const TOTAL_NOTIFICATIONS = 24;
+const TOTAL_MINUTES = 17 * 60; // 1020 minutes
+const SLOT_DURATION = Math.floor(TOTAL_MINUTES / TOTAL_NOTIFICATIONS); // ~42 minutes per slot
 
 // IST timezone offset
 const IST_OFFSET_HOURS = 5;
@@ -84,29 +86,39 @@ function getISTDateTime(): {
 }
 
 // Get slot index (0-23) for current time
-// 16 hours (8 AM to 12 AM) with 24 notifications = roughly every 40 minutes
+// 17 hours (8 AM to 1 AM) with 24 notifications = roughly every 42 minutes
 function getSlotIndex(hour: number, minute: number): number {
-  if (hour < START_HOUR) return -1;
-  if (hour >= 24) return -1;
-  
-  // Calculate minutes since 8 AM
-  const minutesSinceStart = (hour - START_HOUR) * 60 + minute;
-  // Total minutes in window: 16 hours * 60 = 960 minutes
-  // Slot duration: 960 / 24 = 40 minutes per slot
-  const slotDuration = 40;
-  const slot = Math.floor(minutesSinceStart / slotDuration);
-  
+  let minutesSinceStart: number;
+
+  if (hour >= START_HOUR) {
+    // 8 AM to 11:59 PM
+    minutesSinceStart = (hour - START_HOUR) * 60 + minute;
+  } else if (hour <= END_HOUR) {
+    // 12 AM to 1 AM (next day portion)
+    minutesSinceStart = (24 - START_HOUR + hour) * 60 + minute;
+  } else {
+    // Outside window (2 AM to 7:59 AM)
+    return -1;
+  }
+
+  const slot = Math.floor(minutesSinceStart / SLOT_DURATION);
   return Math.min(slot, TOTAL_NOTIFICATIONS - 1);
 }
 
-// Check if current time is within notification window (8 AM - 12 AM IST)
+// Check if current time is within notification window (8 AM - 1 AM IST)
 function isWithinNotificationWindow(hour: number): boolean {
-  return hour >= START_HOUR && hour < 24;
+  // Window: 8 AM to 1 AM (crosses midnight)
+  // Valid hours: 8-23 (8 AM to 11:59 PM) OR 0-1 (12 AM to 1 AM)
+  return hour >= START_HOUR || hour <= END_HOUR;
 }
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
-  const { hours: currentHour, minutes: currentMinute, dateString: today } = getISTDateTime();
+  const {
+    hours: currentHour,
+    minutes: currentMinute,
+    dateString: today,
+  } = getISTDateTime();
   const currentSlot = getSlotIndex(currentHour, currentMinute);
 
   const headers = new Headers({
@@ -141,7 +153,7 @@ export async function GET(request: NextRequest) {
       {
         success: true,
         skipped: true,
-        message: `Outside notification window. Notifications run from ${START_HOUR}:00 AM to 12:00 AM IST`,
+        message: `Outside notification window. Notifications run from ${START_HOUR}:00 AM to ${END_HOUR}:00 AM IST`,
         currentHourIST: currentHour,
         currentSlot,
         durationMs: Date.now() - startTime,

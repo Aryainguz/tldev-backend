@@ -28,10 +28,6 @@ on:
         default: "5"
         type: string
 
-env:
-  API_BASE_URL: ${{ secrets.API_URL }}
-  CRON_SECRET: ${{ secrets.CRON_SECRET }}
-
 jobs:
   generate-tips:
     runs-on: ubuntu-latest
@@ -43,8 +39,8 @@ jobs:
           echo "🚀 Starting tip generation..."
 
           response=$(curl -s -w "\n%{http_code}" -X GET \
-            "${{ env.API_BASE_URL }}/api/cron/generate-tips" \
-            -H "Authorization: Bearer ${{ env.CRON_SECRET }}" \
+            "${{ secrets.API_URL }}/api/cron/generate-tips" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --max-time 120)
 
@@ -70,8 +66,8 @@ jobs:
           echo "🎨 Starting tip enrichment..."
 
           response=$(curl -s -w "\n%{http_code}" -X GET \
-            "${{ env.API_BASE_URL }}/api/jobs/enrich-tip" \
-            -H "Authorization: Bearer ${{ env.CRON_SECRET }}" \
+            "${{ secrets.API_URL }}/api/jobs/enrich-tip" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --max-time 120)
 
