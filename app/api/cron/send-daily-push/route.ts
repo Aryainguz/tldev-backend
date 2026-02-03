@@ -38,28 +38,57 @@ const IST_OFFSET_HOURS = 5;
 const IST_OFFSET_MINUTES = 30;
 
 // Get current date and time in IST
-function getISTDate(): Date {
+function getISTDateTime(): {
+  hours: number;
+  minutes: number;
+  dateString: string;
+} {
   const now = new Date();
-  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
-  const istTime =
-    utcTime + (IST_OFFSET_HOURS * 60 + IST_OFFSET_MINUTES) * 60000;
-  return new Date(istTime);
+  // Convert to IST by adding 5 hours 30 minutes to UTC
+  const utcHours = now.getUTCHours();
+  const utcMinutes = now.getUTCMinutes();
+
+  let istMinutes = utcMinutes + IST_OFFSET_MINUTES;
+  let istHours = utcHours + IST_OFFSET_HOURS;
+
+  // Handle minute overflow
+  if (istMinutes >= 60) {
+    istMinutes -= 60;
+    istHours += 1;
+  }
+
+  // Handle hour overflow (next day)
+  let dayOffset = 0;
+  if (istHours >= 24) {
+    istHours -= 24;
+    dayOffset = 1;
+  }
+
+  // Calculate IST date
+  const istDate = new Date(now);
+  istDate.setUTCHours(istHours, istMinutes, 0, 0);
+  if (dayOffset > 0) {
+    istDate.setUTCDate(istDate.getUTCDate() + dayOffset);
+  }
+
+  const dateString = `${istDate.getUTCFullYear()}-${String(istDate.getUTCMonth() + 1).padStart(2, "0")}-${String(istDate.getUTCDate()).padStart(2, "0")}`;
+
+  return { hours: istHours, minutes: istMinutes, dateString };
 }
 
 // Get today's date string in YYYY-MM-DD format (IST)
 function getTodayDateString(): string {
-  const istDate = getISTDate();
-  return istDate.toISOString().split("T")[0];
+  return getISTDateTime().dateString;
 }
 
 // Get current hour in IST (0-23)
 function getCurrentHour(): number {
-  return getISTDate().getHours();
+  return getISTDateTime().hours;
 }
 
 // Get current minute in IST (0-59)
 function getCurrentMinute(): number {
-  return getISTDate().getMinutes();
+  return getISTDateTime().minutes;
 }
 
 // Get slot index for current time (0-29 for 30 half-hour slots)
@@ -102,24 +131,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { error: "Unauthorized" },
       { status: 401, headers },
-    );
-  }
-
-  // Check if we're within the notification window (6 AM - 11 PM)
-  if (!isWithinNotificationWindow(currentHour)) {
-    console.log(
-      `[send-daily-push] Outside notification window (${START_HOUR}-${END_HOUR}), current hour: ${currentHour}`,
-    );
-    return NextResponse.json(
-      {
-        success: true,
-        skipped: true,
-        message: `Outside notification window. Notifications run from ${START_HOUR}:00 to ${END_HOUR}:30`,
-        currentHour,
-        currentSlot,
-        durationMs: Date.now() - startTime,
-      },
-      { headers },
     );
   }
 
