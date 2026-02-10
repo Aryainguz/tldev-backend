@@ -3,26 +3,16 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
 
   try {
     const body = await request.json();
-    const { user_id, action_type } = body;
+    const { user_id } = body;
 
-    if (!user_id || !action_type) {
-      return NextResponse.json(
-        { error: "user_id and action_type required" },
-        { status: 400 }
-      );
-    }
-
-    if (!["like", "save", "share"].includes(action_type)) {
-      return NextResponse.json(
-        { error: "Invalid action_type" },
-        { status: 400 }
-      );
+    if (!user_id) {
+      return NextResponse.json({ error: "user_id required" }, { status: 400 });
     }
 
     const tip = await prisma.tip.findUnique({ where: { id } });
@@ -45,32 +35,15 @@ export async function POST(
         userId_tipId_actionType: {
           userId: user_id,
           tipId: id,
-          actionType: action_type,
+          actionType: "share",
         },
       },
     });
 
     if (existingAction) {
-      await prisma.action.delete({
-        where: { id: existingAction.id },
-      });
-
-      const countField =
-        action_type === "like"
-          ? "likesCount"
-          : action_type === "save"
-          ? "savesCount"
-          : "sharesCount";
-
-      await prisma.tip.update({
-        where: { id },
-        data: { [countField]: { decrement: 1 } },
-      });
-
       return NextResponse.json({
         success: true,
-        action: "removed",
-        action_type,
+        action: "already_shared",
       });
     }
 
@@ -78,32 +51,24 @@ export async function POST(
       data: {
         userId: user_id,
         tipId: id,
-        actionType: action_type,
+        actionType: "share",
       },
     });
 
-    const countField =
-      action_type === "like"
-        ? "likesCount"
-        : action_type === "save"
-        ? "savesCount"
-        : "sharesCount";
-
     await prisma.tip.update({
       where: { id },
-      data: { [countField]: { increment: 1 } },
+      data: { sharesCount: { increment: 1 } },
     });
 
     return NextResponse.json({
       success: true,
       action: "added",
-      action_type,
     });
   } catch (error) {
     console.error("Error handling action:", error);
     return NextResponse.json(
       { error: "Failed to process action" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

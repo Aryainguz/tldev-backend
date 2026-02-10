@@ -26,34 +26,27 @@ enum JobStatus {
 }
 
 enum ActionType {
-    like
-    save
     share
 }
 
 model Tip {
-    id           String    @id @default(auto()) @map("_id") @db.ObjectId
-    tipText      String
-    tipSummary   String?
-    tipDetail    String?
-    codeSnippet  String?
-    category     String
-    tags         String[]
-    image        Json?
-    viewMore     Json?
-    source       TipSource @default(ai)
-    status       TipStatus @default(draft)
-    aiModel      String?
-    costEstimate Int?
-    jobId        String?   @db.ObjectId
-    job          Job?      @relation(fields: [jobId], references: [id])
-    likesCount   Int       @default(0)
-    savesCount   Int       @default(0)
-    sharesCount  Int       @default(0)
-    viewsCount   Int       @default(0)
-    createdAt    DateTime  @default(now())
-    updatedAt    DateTime  @updatedAt
-    actions      Action[]
+    id          String    @id @default(auto()) @map("_id") @db.ObjectId
+    tipText     String
+    tipSummary  String?
+    tipDetail   String?
+    codeSnippet String?
+    category    String
+    tags        String[]
+    image       Json?
+    source      TipSource @default(ai)
+    status      TipStatus @default(draft)
+    aiModel     String?
+    jobId       String?   @db.ObjectId
+    job         Job?      @relation(fields: [jobId], references: [id])
+    sharesCount Int       @default(0)
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    actions     Action[]
 
     @@index([category])
     @@index([status])
@@ -74,21 +67,14 @@ model Job {
 }
 
 model User {
-    id          String   @id @default(auto()) @map("_id") @db.ObjectId
-    email       String   @unique
-    name        String?
-    avatar      String?
-    provider    String?
-    providerId  String?
-    preferences Json?
-    interests   String[]
-    pushToken   String?
-    deviceType  String?
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
-    actions     Action[]
+    id         String   @id @default(auto()) @map("_id") @db.ObjectId
+    email      String   @unique
+    pushToken  String?
+    deviceType String?
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
+    actions    Action[]
 
-    @@index([provider, providerId])
     @@index([pushToken])
 }
 
@@ -107,7 +93,6 @@ model Action {
 }
 
 // Track hourly push notifications to prevent duplicates
-// Each hour slot (9am-12am = 15 slots) gets one tip notification per day
 model DailyPush {
     id         String    @id @default(auto()) @map("_id") @db.ObjectId
     date       String // Format: YYYY-MM-DD, used for idempotency

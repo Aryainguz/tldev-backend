@@ -17,7 +17,6 @@
     "@prisma/client": "^6.1.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/typography": "^0.5.19",
-    "@types/jsonwebtoken": "^9.0.10",
     "ai": "^4.0.0",
     "autoprefixer": "^10.4.24",
     "expo-server-sdk": "^4.0.0",

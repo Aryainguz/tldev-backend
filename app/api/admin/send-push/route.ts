@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
       },
       select: {
         pushToken: true,
-        interests: true,
       },
     });
 

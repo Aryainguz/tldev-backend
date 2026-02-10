@@ -44,9 +44,6 @@ export async function GET(request: NextRequest) {
         category: true,
         tags: true,
         image: true,
-        likesCount: true,
-        savesCount: true,
-        viewsCount: true,
         createdAt: true,
       },
     });
@@ -66,9 +63,6 @@ export async function GET(request: NextRequest) {
       category: tip.category,
       tags: tip.tags,
       image: tip.image,
-      likes_count: tip.likesCount,
-      saves_count: tip.savesCount,
-      views_count: tip.viewsCount,
       created_at: tip.createdAt,
     }));
 
