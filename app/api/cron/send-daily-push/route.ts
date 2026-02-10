@@ -1,16 +1,16 @@
 /**
  * CRON JOB: Send Random Push Notifications
  *
- * This endpoint sends 24 random tip notifications per day from 8 AM to 12 AM IST.
+ * This endpoint sends 30 random tip notifications per day from 8 AM to 1 AM IST.
  * Tips are selected randomly from all published tips in the database.
  *
- * SCHEDULE: Runs every 40 minutes from 8 AM to 12 AM IST (24 slots)
+ * SCHEDULE: Runs every ~34 minutes from 8 AM to 1 AM IST (30 slots)
  * - Uses seeded randomness based on date + slot for idempotency
  * - Same tip will be sent if cron retries within the same slot
  *
  * RESPONSIBILITIES:
  * - Authenticate via CRON_SECRET
- * - Check if within notification window (8 AM - 12 AM IST)
+ * - Check if within notification window (8 AM - 1 AM IST)
  * - Select a random tip using deterministic seeding
  * - Send push notification to all users
  * - Track sent notifications to prevent duplicates
@@ -24,9 +24,9 @@ import { Expo } from "expo-server-sdk";
 // Notification window: 8 AM to 1 AM IST = 17 hours (crosses midnight)
 const START_HOUR = 8;
 const END_HOUR = 1; // 1 AM next day
-const TOTAL_NOTIFICATIONS = 24;
+const TOTAL_NOTIFICATIONS = 30;
 const TOTAL_MINUTES = 17 * 60; // 1020 minutes
-const SLOT_DURATION = Math.floor(TOTAL_MINUTES / TOTAL_NOTIFICATIONS); // ~42 minutes per slot
+const SLOT_DURATION = Math.floor(TOTAL_MINUTES / TOTAL_NOTIFICATIONS); // ~34 minutes per slot
 
 // IST timezone offset
 const IST_OFFSET_HOURS = 5;
@@ -85,8 +85,8 @@ function getISTDateTime(): {
   return { hours: istHours, minutes: istMinutes, dateString };
 }
 
-// Get slot index (0-23) for current time
-// 17 hours (8 AM to 1 AM) with 24 notifications = roughly every 42 minutes
+// Get slot index (0-29) for current time
+// 17 hours (8 AM to 1 AM) with 30 notifications = roughly every 34 minutes
 function getSlotIndex(hour: number, minute: number): number {
   let minutesSinceStart: number;
 

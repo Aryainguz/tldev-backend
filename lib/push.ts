@@ -15,7 +15,7 @@ export interface PushNotificationPayload {
 }
 
 export async function sendPushNotification(
-  payload: PushNotificationPayload
+  payload: PushNotificationPayload,
 ): Promise<ExpoPushTicket | null> {
   if (!Expo.isExpoPushToken(payload.pushToken)) {
     console.error(`Invalid Expo push token: ${payload.pushToken}`);
@@ -36,10 +36,14 @@ export async function sendPushNotification(
     categoryId: payload.categoryId,
   };
 
+  // Rich image notification: big picture style (Android BigPictureStyle + iOS attachment)
   if (payload.imageUrl) {
-    (message as any).richContent = {
-      image: payload.imageUrl,
-    };
+    // Android: FCM notification.image for BigPictureStyle
+    (message as any).image = payload.imageUrl;
+    // iOS: mutable-content allows notification service extension to download image
+    (message as any).mutableContent = true;
+    // Also pass in data for app-level handling
+    message.data = { ...message.data, imageUrl: payload.imageUrl };
   }
 
   try {
@@ -52,22 +56,32 @@ export async function sendPushNotification(
 }
 
 export async function sendBulkPushNotifications(
-  payloads: PushNotificationPayload[]
+  payloads: PushNotificationPayload[],
 ): Promise<ExpoPushTicket[]> {
   const messages: ExpoPushMessage[] = payloads
     .filter((p) => Expo.isExpoPushToken(p.pushToken))
-    .map((payload) => ({
-      to: payload.pushToken,
-      title: payload.title,
-      body: payload.body,
-      data: payload.imageUrl
-        ? { ...payload.data, imageUrl: payload.imageUrl }
-        : payload.data,
-      sound: payload.sound ?? "default",
-      priority: payload.priority ?? "high",
-      badge: payload.badge,
-      categoryId: payload.categoryId,
-    }));
+    .map((payload) => {
+      const msg: any = {
+        to: payload.pushToken,
+        title: payload.title,
+        body: payload.body,
+        data: payload.imageUrl
+          ? { ...payload.data, imageUrl: payload.imageUrl }
+          : payload.data,
+        sound: payload.sound ?? "default",
+        priority: payload.priority ?? "high",
+        badge: payload.badge,
+        categoryId: payload.categoryId,
+      };
+
+      // Rich image notification: big picture style
+      if (payload.imageUrl) {
+        msg.image = payload.imageUrl; // Android BigPictureStyle
+        msg.mutableContent = true; // iOS rich notification
+      }
+
+      return msg;
+    });
 
   if (messages.length === 0) {
     return [];
@@ -94,19 +108,13 @@ export function formatTipNotification(tip: {
   category: string;
   image?: { url: string } | null;
 }): { title: string; body: string; imageUrl?: string } {
-  const clickbaitTitles = [
-    `🔥 This ${tip.category} tip will change how you code`,
-    `💡 ${tip.category} devs are loving this trick`,
-    `🚀 Level up your ${tip.category} skills instantly`,
-    `✨ The ${tip.category} hack you didn't know you needed`,
-    `⚡ Quick ${tip.category} tip that saves hours`,
-    `🎯 Master ${tip.category} with this one trick`,
-    `💎 Hidden ${tip.category} gem most devs miss`,
-    `🔮 The ${tip.category} secret pros don't share`,
-  ];
+  // Use the AI-generated headline directly as the notification title
+  // tipText contains dynamic headlines like "How Atlassian Saves Millions with Protobuf"
+  const emojis = ["🔥", "💡", "🚀", "⚡", "🎯", "💎", "✨", "🔮"];
+  const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+  const title = `${emoji} ${tip.tipText}`;
 
-  const title =
-    clickbaitTitles[Math.floor(Math.random() * clickbaitTitles.length)];
+  // Use AI-generated summary as the notification body
   const body = tip.tipSummary || tip.tipText.substring(0, 100) + "...";
 
   return {

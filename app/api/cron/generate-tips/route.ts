@@ -102,7 +102,6 @@ export async function GET(request: NextRequest) {
           category: generatedTip.category,
           tags: generatedTip.tags,
           // NO image - will be added by enrich-tip job
-          // NO viewMore - will be added by enrich-tip job
           source: "ai",
           status: "draft", // Draft until enriched
           aiModel: aiResult.model,

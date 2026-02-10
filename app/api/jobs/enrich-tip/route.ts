@@ -3,7 +3,6 @@
  *
  * This endpoint enriches a single tip with:
  * - Unsplash image
- * - View more link (web search)
  * - Updates status from "draft" to "published"
  *
  * DESIGN PRINCIPLES:
@@ -17,14 +16,13 @@
  * - Can be called manually for retry
  * - Can be fan-out triggered from orchestration
  *
- * This separation ensures network calls (Unsplash, Search) don't
+ * This separation ensures network calls (Unsplash) don't
  * block the main AI generation cron job.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUnsplashImage } from "@/lib/unsplash";
-import { searchViewMoreLink } from "@/lib/search";
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -73,28 +71,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Fetch image and view more link in parallel
-    console.log(
-      `[enrich-tip] Fetching image and view more for: ${tip.category}`,
-    );
+    // Fetch image for the tip
+    console.log(`[enrich-tip] Fetching image for: ${tip.category}`);
 
-    const [image, viewMore] = await Promise.all([
-      getUnsplashImage(tip.category).catch((err) => {
-        console.error(`[enrich-tip] Unsplash error for ${tipId}:`, err);
-        return null;
-      }),
-      searchViewMoreLink(tip.tipText, tip.category).catch((err) => {
-        console.error(`[enrich-tip] Search error for ${tipId}:`, err);
-        return null;
-      }),
-    ]);
+    const image = await getUnsplashImage(tip.category).catch((err) => {
+      console.error(`[enrich-tip] Unsplash error for ${tipId}:`, err);
+      return null;
+    });
 
     // Update the tip with enriched data
     const updatedTip = await prisma.tip.update({
       where: { id: tipId },
       data: {
         image: image ? (image as any) : tip.image, // Keep existing if fetch failed
-        viewMore: viewMore ? (viewMore as any) : tip.viewMore,
         status: "published", // Mark as published
       },
     });
@@ -107,7 +96,6 @@ export async function POST(request: NextRequest) {
       tipId,
       status: updatedTip.status,
       hasImage: !!updatedTip.image,
-      hasViewMore: !!updatedTip.viewMore,
       durationMs,
     });
   } catch (error) {
@@ -170,18 +158,12 @@ export async function GET(request: NextRequest) {
       const batch = draftTips.slice(i, i + batchSize);
       const batchResults = await Promise.allSettled(
         batch.map(async (tip) => {
-          const [image, viewMore] = await Promise.all([
-            getUnsplashImage(tip.category).catch(() => null),
-            searchViewMoreLink(tip.tipText || "", tip.category).catch(
-              () => null,
-            ),
-          ]);
+          const image = await getUnsplashImage(tip.category).catch(() => null);
 
           return prisma.tip.update({
             where: { id: tip.id },
             data: {
               image: image ? (image as any) : undefined,
-              viewMore: viewMore ? (viewMore as any) : undefined,
               status: "published",
             },
           });
