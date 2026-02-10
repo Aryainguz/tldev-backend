@@ -2,7 +2,6 @@ name: Generate Tips Cron
 
 on:
   schedule:
-    # Run 6 times daily at IST peak hours (UTC+5:30)
     # 6:00 AM IST = 0:30 UTC
     - cron: "30 0 * * *"
     # 9:00 AM IST = 3:30 UTC

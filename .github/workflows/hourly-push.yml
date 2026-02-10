@@ -2,9 +2,7 @@ name: Push Notifications (30/day)
 
 on:
   schedule:
-    # 30 notifications per day from 8 AM to 1 AM IST (next day)
-    # IST = UTC + 5:30, so 8 AM IST = 2:30 UTC, 1 AM IST = 19:30 UTC
-    # 17 hours = 1020 min / 30 = every ~34 min
+    # 30 notifications
     - cron: "30 2 * * *" # 08:00 IST
     - cron: "4 3 * * *" # 08:34 IST
     - cron: "38 3 * * *" # 09:08 IST
