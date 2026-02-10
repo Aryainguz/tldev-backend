@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateTips } from "@/lib/ai";
 import { getUnsplashImage } from "@/lib/unsplash";
-import { searchViewMoreLink } from "@/lib/search";
 
 export async function POST(request: NextRequest) {
   const adminKey = process.env.ADMIN_API_KEY;
@@ -31,10 +30,7 @@ export async function POST(request: NextRequest) {
     const generatedTips = [];
 
     for (const tip of aiResult.tips) {
-      const [image, viewMore] = await Promise.all([
-        getUnsplashImage(tip.category),
-        searchViewMoreLink(tip.tip_text, tip.category),
-      ]);
+      const image = await getUnsplashImage(tip.category);
 
       if (publish) {
         const savedTip = await prisma.tip.create({
@@ -46,9 +42,6 @@ export async function POST(request: NextRequest) {
             category: tip.category,
             tags: tip.tags,
             image: image ? JSON.parse(JSON.stringify(image)) : undefined,
-            viewMore: viewMore
-              ? JSON.parse(JSON.stringify(viewMore))
-              : undefined,
             source: "ai",
             status: "published",
             aiModel: aiResult.model,
@@ -59,14 +52,12 @@ export async function POST(request: NextRequest) {
           ...tip,
           id: savedTip.id,
           image,
-          view_more: viewMore,
           status: "published",
         });
       } else {
         generatedTips.push({
           ...tip,
           image,
-          view_more: viewMore,
           status: "preview",
         });
       }
