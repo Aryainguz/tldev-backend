@@ -1,37 +1,13 @@
-/**
- * CRON JOB: Generate AI Tips (FAST)
- *
- * This endpoint is designed to be cron-safe on Vercel (< 30s execution).
- *
- * RESPONSIBILITIES:
- * - Authenticate via CRON_SECRET
- * - Call generateTips() for AI content generation
- * - Persist tips with status: "draft" and jobId
- * - Create/update job tracking records
- *
- * WHAT THIS DOES NOT DO (by design):
- * - NO Unsplash image fetching (moved to enrich-tip job)
- * - NO web search for view more links (moved to enrich-tip job)
- * - NO push notifications (moved to send-daily-push cron)
- *
- * This separation ensures:
- * 1. Fast execution under Vercel's 60s limit
- * 2. Retry-safety (AI generation is idempotent)
- * 3. Decoupled concerns for better observability
- */
-
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateTips } from "@/lib/ai";
 
-// Generate 5 tips per cron run - runs 6x daily for 30 tips total
-const TIPS_PER_DAY = 7;
+const TIPS_PER_BATCH = 7;
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
   console.log("[generate-tips] Cron job started");
 
-  // Authenticate via CRON_SECRET
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -40,7 +16,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Create job record for tracking
   const job = await prisma.job.create({
     data: {
       status: "running",
@@ -53,9 +28,8 @@ export async function GET(request: NextRequest) {
   const errors: Array<{ step: string; error: string }> = [];
 
   try {
-    // Step 1: Generate tips via AI (this is the only heavy operation)
     console.log("[generate-tips] Starting AI generation...");
-    const aiResult = await generateTips(TIPS_PER_DAY);
+    const aiResult = await generateTips(TIPS_PER_BATCH);
     console.log(`[generate-tips] AI generated ${aiResult.tips.length} tips`);
 
     if (aiResult.error || aiResult.tips.length === 0) {
@@ -75,7 +49,7 @@ export async function GET(request: NextRequest) {
             finished: new Date().toISOString(),
             model: aiResult.model,
             successCount: 0,
-            failCount: TIPS_PER_DAY,
+            failCount: TIPS_PER_BATCH,
             durationMs: Date.now() - startTime,
           },
         },
@@ -88,8 +62,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Step 2: Persist all tips as drafts (fast batch operation)
-    // Tips are created with status: "draft" - enrichment happens separately
     console.log("[generate-tips] Persisting tips as drafts...");
 
     const tipCreatePromises = aiResult.tips.map((generatedTip) =>
@@ -101,9 +73,8 @@ export async function GET(request: NextRequest) {
           codeSnippet: generatedTip.code_snippet,
           category: generatedTip.category,
           tags: generatedTip.tags,
-          // NO image - will be added by enrich-tip job
           source: "ai",
-          status: "draft", // Draft until enriched
+          status: "draft",
           aiModel: aiResult.model,
           jobId: job.id,
         },
@@ -115,7 +86,6 @@ export async function GET(request: NextRequest) {
 
     console.log(`[generate-tips] Created ${successCount} draft tips`);
 
-    // Step 3: Update job status
     await prisma.job.update({
       where: { id: job.id },
       data: {
@@ -150,7 +120,6 @@ export async function GET(request: NextRequest) {
         durationMs,
         tipIds: createdTips.map((t) => t.id),
       },
-      // Hint for orchestration: these tips need enrichment
       nextStep: "Call POST /api/jobs/enrich-tip for each tipId to publish",
     });
   } catch (error) {

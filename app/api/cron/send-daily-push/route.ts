@@ -1,56 +1,33 @@
-/**
- * CRON JOB: Send Random Push Notifications
- *
- * This endpoint sends 30 random tip notifications per day from 8 AM to 1 AM IST.
- * Tips are selected randomly from all published tips in the database.
- *
- * SCHEDULE: Runs every ~34 minutes from 8 AM to 1 AM IST (30 slots)
- * - Uses seeded randomness based on date + slot for idempotency
- * - Same tip will be sent if cron retries within the same slot
- *
- * RESPONSIBILITIES:
- * - Authenticate via CRON_SECRET
- * - Check if within notification window (8 AM - 1 AM IST)
- * - Select a random tip using deterministic seeding
- * - Send push notification to all users
- * - Track sent notifications to prevent duplicates
- */
-
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendPushNotification, formatTipNotification } from "@/lib/push";
 import { Expo } from "expo-server-sdk";
 
-// Notification window: 8 AM to 1 AM IST = 17 hours (crosses midnight)
 const START_HOUR = 8;
-const END_HOUR = 1; // 1 AM next day
+const END_HOUR = 1;
 const TOTAL_NOTIFICATIONS = 30;
-const TOTAL_MINUTES = 17 * 60; // 1020 minutes
-const SLOT_DURATION = Math.floor(TOTAL_MINUTES / TOTAL_NOTIFICATIONS); // ~34 minutes per slot
+const TOTAL_MINUTES = 17 * 60;
+const SLOT_DURATION = Math.floor(TOTAL_MINUTES / TOTAL_NOTIFICATIONS);
 
-// IST timezone offset
 const IST_OFFSET_HOURS = 5;
 const IST_OFFSET_MINUTES = 30;
 
-// Simple seeded random number generator for deterministic tip selection
 function seededRandom(seed: number): number {
   const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
 }
 
-// Create a seed from date string and slot number
 function createSeed(dateString: string, slot: number): number {
   let hash = 0;
   const str = `${dateString}-${slot}`;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
     hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32bit integer
+    hash = hash & hash;
   }
   return Math.abs(hash);
 }
 
-// Get current date and time in IST
 function getISTDateTime(): {
   hours: number;
   minutes: number;
@@ -85,19 +62,14 @@ function getISTDateTime(): {
   return { hours: istHours, minutes: istMinutes, dateString };
 }
 
-// Get slot index (0-29) for current time
-// 17 hours (8 AM to 1 AM) with 30 notifications = roughly every 34 minutes
 function getSlotIndex(hour: number, minute: number): number {
   let minutesSinceStart: number;
 
   if (hour >= START_HOUR) {
-    // 8 AM to 11:59 PM
     minutesSinceStart = (hour - START_HOUR) * 60 + minute;
   } else if (hour <= END_HOUR) {
-    // 12 AM to 1 AM (next day portion)
     minutesSinceStart = (24 - START_HOUR + hour) * 60 + minute;
   } else {
-    // Outside window (2 AM to 7:59 AM)
     return -1;
   }
 
@@ -105,10 +77,7 @@ function getSlotIndex(hour: number, minute: number): number {
   return Math.min(slot, TOTAL_NOTIFICATIONS - 1);
 }
 
-// Check if current time is within notification window (8 AM - 1 AM IST)
 function isWithinNotificationWindow(hour: number): boolean {
-  // Window: 8 AM to 1 AM (crosses midnight)
-  // Valid hours: 8-23 (8 AM to 11:59 PM) OR 0-1 (12 AM to 1 AM)
   return hour >= START_HOUR || hour <= END_HOUR;
 }
 
@@ -132,7 +101,6 @@ export async function GET(request: NextRequest) {
     `[send-daily-push] Cron started for date: ${today}, IST time: ${currentHour}:${currentMinute.toString().padStart(2, "0")}, slot: ${currentSlot}`,
   );
 
-  // Authenticate via CRON_SECRET
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -144,7 +112,6 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Check if we're within the notification window (8 AM - 12 AM IST)
   if (!isWithinNotificationWindow(currentHour)) {
     console.log(
       `[send-daily-push] Outside notification window (${START_HOUR}:00 - 00:00 IST), current hour: ${currentHour}`,
@@ -163,7 +130,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // IDEMPOTENCY CHECK: Has push already been sent for this slot today?
     const existingPush = await prisma.dailyPush.findUnique({
       where: {
         date_hour: {
@@ -193,7 +159,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get ALL published tips from the database
     const allTips = await prisma.tip.findMany({
       where: {
         status: "published",
@@ -221,7 +186,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Select a random tip using seeded randomness (deterministic for idempotency)
     const seed = createSeed(today, currentSlot);
     const randomIndex = Math.floor(seededRandom(seed) * allTips.length);
     const tipToSend = allTips[randomIndex];
@@ -230,7 +194,6 @@ export async function GET(request: NextRequest) {
       `[send-daily-push] Slot ${currentSlot} → Sending random tip: ${tipToSend.id} (index ${randomIndex} of ${allTips.length})`,
     );
 
-    // Create or update DailyPush record for this slot
     const dailyPush = await prisma.dailyPush.upsert({
       where: {
         date_hour: {
@@ -252,7 +215,6 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Get all users with push tokens
     const users = await prisma.user.findMany({
       where: {
         pushToken: { not: null },
@@ -290,7 +252,6 @@ export async function GET(request: NextRequest) {
 
     console.log(`[send-daily-push] Sending to ${users.length} users`);
 
-    // Format the notification
     const notification = formatTipNotification({
       tipSummary: tipToSend.tipSummary,
       tipText: tipToSend.tipText,
@@ -298,7 +259,6 @@ export async function GET(request: NextRequest) {
       image: tipToSend.image as { url: string } | null,
     });
 
-    // Send notifications ONE BY ONE
     let sentCount = 0;
     let errorCount = 0;
     const errors: Array<{ userId: string; error: string }> = [];
@@ -344,7 +304,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Update DailyPush record with results
     await prisma.dailyPush.update({
       where: { id: dailyPush.id },
       data: {

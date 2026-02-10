@@ -72,7 +72,6 @@ export async function GET(request: NextRequest) {
       created_at: tip.createdAt,
     }));
 
-    // Shuffle the feed if requested (for variety in timeline)
     const finalTips = shuffle ? shuffleArray(formattedTips) : formattedTips;
 
     return NextResponse.json({

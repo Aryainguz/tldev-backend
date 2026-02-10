@@ -1,25 +1,3 @@
-/**
- * BACKGROUND JOB: Enrich Tip
- *
- * This endpoint enriches a single tip with:
- * - Unsplash image
- * - Updates status from "draft" to "published"
- *
- * DESIGN PRINCIPLES:
- * - Idempotent: Safe to retry if failed
- * - Parallelizable: Can run multiple instances concurrently
- * - Fast: Only handles one tip at a time
- * - Decoupled: Does not trigger push notifications
- *
- * TRIGGER:
- * - Called after generate-tips cron completes
- * - Can be called manually for retry
- * - Can be fan-out triggered from orchestration
- *
- * This separation ensures network calls (Unsplash) don't
- * block the main AI generation cron job.
- */
-
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUnsplashImage } from "@/lib/unsplash";
@@ -27,7 +5,6 @@ import { getUnsplashImage } from "@/lib/unsplash";
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
-  // Authenticate - can use CRON_SECRET or ADMIN_API_KEY
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
   const adminKey = process.env.ADMIN_API_KEY;
@@ -50,7 +27,6 @@ export async function POST(request: NextRequest) {
 
     console.log(`[enrich-tip] Starting enrichment for tip: ${tipId}`);
 
-    // Fetch the tip
     const tip = await prisma.tip.findUnique({
       where: { id: tipId },
     });
@@ -71,7 +47,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Fetch image for the tip
     console.log(`[enrich-tip] Fetching image for: ${tip.category}`);
 
     const image = await getUnsplashImage(tip.category).catch((err) => {
@@ -79,7 +54,6 @@ export async function POST(request: NextRequest) {
       return null;
     });
 
-    // Update the tip with enriched data
     const updatedTip = await prisma.tip.update({
       where: { id: tipId },
       data: {
@@ -113,12 +87,10 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET endpoint to enrich all draft tips
- * Useful for batch processing or retry scenarios
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
 
-  // Authenticate
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
   const adminKey = process.env.ADMIN_API_KEY;
@@ -132,11 +104,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Find all draft tips that need enrichment
     const draftTips = await prisma.tip.findMany({
       where: { status: "draft" },
       select: { id: true, category: true, tipText: true },
-      take: 10, // Reduced limit to prevent timeout (was 50)
+      take: 10,
     });
 
     if (draftTips.length === 0) {
@@ -150,7 +121,6 @@ export async function GET(request: NextRequest) {
 
     console.log(`[enrich-tip] Found ${draftTips.length} draft tips to enrich`);
 
-    // Process tips sequentially with small batches to avoid rate limits
     const batchSize = 3;
     const results: PromiseSettledResult<any>[] = [];
 
@@ -171,7 +141,6 @@ export async function GET(request: NextRequest) {
       );
       results.push(...batchResults);
 
-      // Small delay between batches to avoid rate limiting
       if (i + batchSize < draftTips.length) {
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
