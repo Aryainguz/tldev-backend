@@ -23,6 +23,11 @@ function getModel() {
 }
 
 const TIP_CATEGORIES = [
+  "System Design",
+  "Performance",
+  "Data Structures",
+  "Algorithms",
+  "Security",
   "JavaScript",
   "Python",
   "React",
@@ -166,13 +171,15 @@ tip_summary (80-150 chars):
 - 1-2 sentences expanding the headline
 - Include the "what" and "why"
 
-tip_detail (500-800 chars) - STRICT STRUCTURE:
-1. HOOK (1-2 sentences): Problem or surprising fact
-2. TENSION (2-3 sentences): Why current solutions fail
-3. PAYOFF (3-4 sentences): The solution and key insight
-4. WHEN_NOT_TO_USE (1-2 sentences): Clear anti-pattern
-5. FAILURE_STORY (1 sentence): "Common mistake: [specific error]"
-6. TAKEAWAY (1 line): "TL;DR: [actionable 1-liner]"
+tip_detail (500-800 chars) - STRICT STRUCTURE with EXPLICIT LABELS:
+Each section MUST start on a new line with its label prefix. Format exactly like this:
+HOOK: [1-2 sentences — problem or surprising fact]
+TENSION: [2-3 sentences — why current solutions fail]
+PAYOFF: [3-4 sentences — the solution and key insight]
+WHEN_NOT_TO_USE: [1-2 sentences — clear anti-pattern]
+FAILURE_STORY: [1 sentence — "Common mistake: specific error"]
+TAKEAWAY: [1 actionable line — "TL;DR: one-liner"]
+IMPORTANT: Each label (HOOK:, TENSION:, PAYOFF:, WHEN_NOT_TO_USE:, FAILURE_STORY:, TAKEAWAY:) MUST appear literally at the start of its section, separated by newlines. Do NOT omit labels or merge sections.
 
 code_snippet (REQUIRED):
 - First line MUST be language comment: // JavaScript, # Python, -- SQL, etc.

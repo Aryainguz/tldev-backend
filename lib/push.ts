@@ -36,13 +36,14 @@ export async function sendPushNotification(
     categoryId: payload.categoryId,
   };
 
-  // Rich image notification: big picture style (Android BigPictureStyle + iOS attachment)
+  // Rich image notification using Expo's official richContent API
   if (payload.imageUrl) {
-    // Android: FCM notification.image for BigPictureStyle
-    (message as any).image = payload.imageUrl;
-    // iOS: mutable-content allows notification service extension to download image
-    (message as any).mutableContent = true;
-    // Also pass in data for app-level handling
+    // richContent.image: Expo Push API forwards this to FCM (Android BigPictureStyle)
+    // and APNs (iOS - requires Notification Service Extension to download & attach)
+    message.richContent = { image: payload.imageUrl };
+    // mutableContent: tells iOS to invoke the Notification Service Extension
+    message.mutableContent = true;
+    // Also keep in data for in-app handling
     message.data = { ...message.data, imageUrl: payload.imageUrl };
   }
 
@@ -74,10 +75,10 @@ export async function sendBulkPushNotifications(
         categoryId: payload.categoryId,
       };
 
-      // Rich image notification: big picture style
+      // Rich image notification using Expo's official richContent API
       if (payload.imageUrl) {
-        msg.image = payload.imageUrl; // Android BigPictureStyle
-        msg.mutableContent = true; // iOS rich notification
+        msg.richContent = { image: payload.imageUrl }; // Android BigPicture + iOS attachment
+        msg.mutableContent = true; // iOS: triggers Notification Service Extension
       }
 
       return msg;
