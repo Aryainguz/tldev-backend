@@ -1,18 +1,3 @@
-/**
- * ADMIN ENDPOINT: Send Push Notification
- *
- * This is the EXISTING admin push endpoint, moved to /api/admin/send-push
- * for better organization. It supports:
- * - Sending push for a specific tip (by tipId)
- * - Sending custom push notifications (with customTitle/customBody)
- *
- * AUTHENTICATION: Requires ADMIN_API_KEY in Authorization header
- *
- * This is SEPARATE from the daily cron push:
- * - Admin push: Manual, arbitrary payloads, on-demand
- * - Cron push: Automated, daily tips only, idempotent
- */
-
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendBulkPushNotifications, formatTipNotification } from "@/lib/push";
@@ -32,7 +17,7 @@ export async function POST(request: NextRequest) {
     if (!tipId && !customTitle) {
       return NextResponse.json(
         { error: "Either tipId or customTitle/customBody required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -104,7 +89,7 @@ export async function POST(request: NextRequest) {
     console.error("Error sending notifications:", error);
     return NextResponse.json(
       { error: "Failed to send notifications" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
