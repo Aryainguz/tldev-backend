@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getUnsplashImage } from "@/lib/unsplash";
 
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
     const updatedTip = await prisma.tip.update({
       where: { id: tipId },
       data: {
-        image: image ? (image as any) : tip.image, // Keep existing if fetch failed
+        image: image ? (image as unknown as Prisma.InputJsonValue) : tip.image,
         status: "published", // Mark as published
       },
     });
@@ -133,7 +134,7 @@ export async function GET(request: NextRequest) {
           return prisma.tip.update({
             where: { id: tip.id },
             data: {
-              image: image ? (image as any) : undefined,
+              image: image ? (image as unknown as Prisma.InputJsonValue) : undefined,
               status: "published",
             },
           });

@@ -291,7 +291,7 @@ export async function GET(request: NextRequest) {
             userId: user.id,
             error:
               ticket?.status === "error"
-                ? (ticket as any).message
+                ? (ticket as { status: "error"; message: string }).message
                 : "Unknown error",
           });
         }

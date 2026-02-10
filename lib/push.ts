@@ -2,6 +2,17 @@ import { Expo, ExpoPushMessage, ExpoPushTicket } from "expo-server-sdk";
 
 const expo = new Expo();
 
+const NOTIFICATION_EMOJIS = [
+  "🔥",
+  "💡",
+  "🚀",
+  "⚡",
+  "🎯",
+  "💎",
+  "✨",
+  "🔮",
+] as const;
+
 export interface PushNotificationPayload {
   pushToken: string;
   title: string;
@@ -14,14 +25,7 @@ export interface PushNotificationPayload {
   categoryId?: string;
 }
 
-export async function sendPushNotification(
-  payload: PushNotificationPayload,
-): Promise<ExpoPushTicket | null> {
-  if (!Expo.isExpoPushToken(payload.pushToken)) {
-    console.error(`Invalid Expo push token: ${payload.pushToken}`);
-    return null;
-  }
-
+function buildPushMessage(payload: PushNotificationPayload): ExpoPushMessage {
   const message: ExpoPushMessage = {
     to: payload.pushToken,
     title: payload.title,
@@ -36,18 +40,30 @@ export async function sendPushNotification(
     categoryId: payload.categoryId,
   };
 
-  // Rich image notification using Expo's official richContent API
   if (payload.imageUrl) {
-    // richContent.image: Expo Push API forwards this to FCM (Android BigPictureStyle)
-    // and APNs (iOS - requires Notification Service Extension to download & attach)
     message.richContent = { image: payload.imageUrl };
-    // mutableContent: tells iOS to invoke the Notification Service Extension
     message.mutableContent = true;
-    // Also keep in data for in-app handling
-    message.data = { ...message.data, imageUrl: payload.imageUrl };
+  }
+
+  return message;
+}
+
+function getRandomEmoji(): string {
+  return NOTIFICATION_EMOJIS[
+    Math.floor(Math.random() * NOTIFICATION_EMOJIS.length)
+  ];
+}
+
+export async function sendPushNotification(
+  payload: PushNotificationPayload,
+): Promise<ExpoPushTicket | null> {
+  if (!Expo.isExpoPushToken(payload.pushToken)) {
+    console.error(`Invalid Expo push token: ${payload.pushToken}`);
+    return null;
   }
 
   try {
+    const message = buildPushMessage(payload);
     const tickets = await expo.sendPushNotificationsAsync([message]);
     return tickets[0];
   } catch (error) {
@@ -59,30 +75,9 @@ export async function sendPushNotification(
 export async function sendBulkPushNotifications(
   payloads: PushNotificationPayload[],
 ): Promise<ExpoPushTicket[]> {
-  const messages: ExpoPushMessage[] = payloads
+  const messages = payloads
     .filter((p) => Expo.isExpoPushToken(p.pushToken))
-    .map((payload) => {
-      const msg: any = {
-        to: payload.pushToken,
-        title: payload.title,
-        body: payload.body,
-        data: payload.imageUrl
-          ? { ...payload.data, imageUrl: payload.imageUrl }
-          : payload.data,
-        sound: payload.sound ?? "default",
-        priority: payload.priority ?? "high",
-        badge: payload.badge,
-        categoryId: payload.categoryId,
-      };
-
-      // Rich image notification using Expo's official richContent API
-      if (payload.imageUrl) {
-        msg.richContent = { image: payload.imageUrl }; // Android BigPicture + iOS attachment
-        msg.mutableContent = true; // iOS: triggers Notification Service Extension
-      }
-
-      return msg;
-    });
+    .map(buildPushMessage);
 
   if (messages.length === 0) {
     return [];
@@ -109,14 +104,8 @@ export function formatTipNotification(tip: {
   category: string;
   image?: { url: string } | null;
 }): { title: string; body: string; imageUrl?: string } {
-  // Use the AI-generated headline directly as the notification title
-  // tipText contains dynamic headlines like "How Atlassian Saves Millions with Protobuf"
-  const emojis = ["🔥", "💡", "🚀", "⚡", "🎯", "💎", "✨", "🔮"];
-  const emoji = emojis[Math.floor(Math.random() * emojis.length)];
-  const title = `${emoji} ${tip.tipText}`;
-
-  // Use AI-generated summary as the notification body
-  const body = tip.tipSummary || tip.tipText.substring(0, 100) + "...";
+  const title = `${getRandomEmoji()} ${tip.tipText}`;
+  const body = tip.tipSummary || `${tip.tipText.substring(0, 100)}...`;
 
   return {
     title,
