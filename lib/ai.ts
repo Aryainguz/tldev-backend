@@ -51,22 +51,55 @@ const TIP_CATEGORIES = [
 ];
 
 const HEADLINE_PATTERNS = [
-  "[Company] does X. Here's how",
-  "[Tech] cuts [metric] by [%]. See why",
-  "Your [thing] is broken. Fix it",
-  "[Number]x faster with [tech]",
-  "Stop using [old]. Try [new]",
-  "[Tech] secret [company] won't tell you",
-  "I switched to [tech]. Never going back",
-  "[Tech] in 2026: What changed",
-  "The [tech] mistake costing you [outcome]",
-  "Why [company] abandoned [old] for [new]",
-  "[Tech] is dead. Long live [new]",
-  "Boost [metric] with [tech] now",
-  "The truth about [tech] performance",
-  "How [company] scales with [tech]",
-  "The [tech] hack saving [time/money]",
-];
+  "How [Company] uses [Tech] to [outcome]",
+  "[Company] saves [amount] with [Tech]",
+  "Why [Company] switched from [old] to [new]",
+  "[Company]'s [Tech] handles [scale] daily",
+  "[Company] cut [metric] by [%] using [Tech]",
+  "Inside [Company]'s [Tech] architecture",
+  "[Company] dropped [old]. Here's what replaced it",
+  "The [Tech] trick [Company] uses at scale",
+  "[Company] processes [number] requests with [Tech]",
+  "Why [Company] built their own [Tech]",
+  "[Company]'s [Tech] reduced downtime by [%]",
+  "How [Company] migrated [scale] to [Tech]",
+  "[Company] replaced [old] and got [number]x speed",
+  "[Company]'s secret: [Tech] for [outcome]",
+  "What [Company] learned after [Tech] failed",
+] as const;
+
+const REAL_WORLD_COMPANIES = [
+  "Netflix",
+  "Spotify",
+  "Uber",
+  "Airbnb",
+  "LinkedIn",
+  "Stripe",
+  "Shopify",
+  "Discord",
+  "Slack",
+  "Atlassian",
+  "Meta",
+  "Google",
+  "Twitter/X",
+  "GitHub",
+  "Cloudflare",
+  "Vercel",
+  "Supabase",
+  "Figma",
+  "Notion",
+  "Datadog",
+  "Pinterest",
+  "DoorDash",
+  "Instacart",
+  "Coinbase",
+  "Canva",
+  "Reddit",
+  "Twitch",
+  "Dropbox",
+  "PayPal",
+  "Square",
+] as const;
 
 const TipSchema = z.object({
   tip_text: z
@@ -133,13 +166,34 @@ export async function generateTips(
     : "";
 
   const prompt = `You are a professional viral tech-content generator for TL;Dev (mobile app for developers).
-Objective: produce EXACTLY ${count} COMPLETELY UNIQUE tips (no duplicates in topic, technology, headline pattern, or primary technology).
+Objective: produce EXACTLY ${count} COMPLETELY UNIQUE tips based on REAL engineering stories from real companies.
+
+═══════════════════════════════════════════════════════════════
+CORE IDENTITY: REAL-WORLD ENGINEERING STORIES
+═══════════════════════════════════════════════════════════════
+Every tip MUST be based on a real engineering decision, migration, architecture choice, or incident from a real tech company.
+Reference actual blog posts, tech talks, open-source projects, or well-known engineering practices.
+DO NOT invent fake company stories. Use real, verifiable engineering facts.
+
+Example headlines that define our style:
+- "Netflix Uses Binary Trees to Optimize Stream Quality"
+- "LinkedIn's Graph DB Handles 2M Queries/sec"
+- "Atlassian Saves $8M/yr With Protobuf Migration"
+- "Discord Stores Trillions of Messages Using Rust"
+- "Uber Cut Microservice Latency 40% With gRPC"
+- "Shopify Handles 80K RPS on Black Friday With Lua"
+- "Figma's Multiplayer Uses CRDTs, Not OT"
+
+Companies to reference (use DIFFERENT company per tip):
+${REAL_WORLD_COMPANIES.join(", ")}
 
 ═══════════════════════════════════════════════════════════════
 IMPORTANT GLOBAL RULES
 ═══════════════════════════════════════════════════════════════
-- ZERO duplicates: no two tips may share the same primary_tech, unique_topic slug, headline pattern ending, or mention the same core product/company as the primary focus.
-- BANNED WORDS in headlines: ultimate, insane, amazing, awesome, powerful, magic
+- ZERO duplicates: no two tips may share the same primary_tech, unique_topic slug, headline pattern, or company
+- EVERY headline MUST name a real company + real tech + specific metric/outcome
+- BANNED WORDS in headlines: ultimate, insane, amazing, awesome, powerful, magic, simple
+- Each tip must reference a DIFFERENT real company
 ${previousTechsStr}
 
 ═══════════════════════════════════════════════════════════════
@@ -151,8 +205,10 @@ STEP A — PLANNING (DO THIS FIRST MENTALLY)
 ═══════════════════════════════════════════════════════════════
 Before generating, plan ${count} tips ensuring:
 1. Each unique_topic slug is DIFFERENT
-2. Each primary_tech is DIFFERENT (e.g., Cloudflare, PostgreSQL, Rust, Go, tRPC - use each ONLY ONCE)
+2. Each primary_tech is DIFFERENT (e.g., Protobuf, CRDTs, gRPC, Binary Trees, Kafka - use each ONLY ONCE)
 3. Each headline_pattern is DIFFERENT
+4. Each company is DIFFERENT (one company per tip)
+5. Each story is based on REAL engineering decisions (blog posts, talks, open-source)
 
 Available headline patterns (use each ONLY ONCE):
 ${HEADLINE_PATTERNS.map((p, i) => `${i + 1}. "${p}"`).join("\n")}
@@ -163,33 +219,33 @@ STEP B — GENERATION RULES (per tip)
 
 tip_text (HEADLINE):
 - Max 60 chars
-- MUST include specific outcome or number
+- MUST name a real company + real technology + specific number/outcome
 - Follow ONE of the headline patterns above (different for each tip)
-- Use company names, bold claims, urgency
+- Examples: "Stripe Processes 1M TPS With Ruby" or "Airbnb Cut Deploy Time 70% With Bazel"
 
 tip_summary (80-150 chars):
-- 1-2 sentences expanding the headline
-- Include the "what" and "why"
+- 1-2 sentences expanding the real-world engineering story
+- Mention the company context, the problem they faced, and the result
 
 tip_detail (500-800 chars) - STRICT STRUCTURE with EXPLICIT LABELS:
-Each section MUST start on a new line with its label prefix. Format exactly like this:
-HOOK: [1-2 sentences — problem or surprising fact]
-TENSION: [2-3 sentences — why current solutions fail]
-PAYOFF: [3-4 sentences — the solution and key insight]
-WHEN_NOT_TO_USE: [1-2 sentences — clear anti-pattern]
-FAILURE_STORY: [1 sentence — "Common mistake: specific error"]
-TAKEAWAY: [1 actionable line — "TL;DR: one-liner"]
+Each section MUST start on a new line with its label prefix. The content should tell the REAL engineering story:
+HOOK: [1-2 sentences — the real problem the company faced at scale]
+TENSION: [2-3 sentences — what they tried before and why it failed]
+PAYOFF: [3-4 sentences — what they actually built/adopted and the real results]
+WHEN_NOT_TO_USE: [1-2 sentences — when this approach doesn't apply]
+FAILURE_STORY: [1 sentence — "Common mistake: specific real-world pitfall"]
+TAKEAWAY: [1 actionable line — "TL;DR: what you can adopt today"]
 IMPORTANT: Each label (HOOK:, TENSION:, PAYOFF:, WHEN_NOT_TO_USE:, FAILURE_STORY:, TAKEAWAY:) MUST appear literally at the start of its section, separated by newlines. Do NOT omit labels or merge sections.
 
 code_snippet (REQUIRED):
 - First line MUST be language comment: // JavaScript, # Python, -- SQL, etc.
-- 5-15 lines of RUNNABLE code demonstrating the tip
-- For Git/DevOps topics: show CLI commands or config files
-- For architecture topics: show pseudo-code or config YAML
+- 5-15 lines of RUNNABLE code demonstrating the core technique from the story
+- Show the actual pattern/algorithm/config the company uses
+- For architecture topics: show real config, proto definitions, or algorithm implementation
 - EVERY tip MUST have code. NO EXCEPTIONS.
 
 primary_tech:
-- Single word or bigram (e.g., "Cloudflare", "PostgreSQL", "Rust", "tRPC")
+- The specific technology/concept (e.g., "Protobuf", "CRDTs", "B-Trees", "gRPC", "Kafka")
 - MUST be unique across all ${count} tips
 
 headline_pattern:
@@ -198,16 +254,19 @@ headline_pattern:
 
 claim_provenance:
 - For ANY numeric claim, specify: "benchmark-based" | "production-observed" | "community-reported" | "estimated-range"
+- Prefer "production-observed" since these are real company stories
 
 ═══════════════════════════════════════════════════════════════
 GENERATE EXACTLY ${count} TIPS NOW
 ═══════════════════════════════════════════════════════════════
 Remember:
+- ${count} different REAL companies (one per tip)
 - ${count} unique primary_tech values
 - ${count} unique headline_pattern values  
 - ${count} unique unique_topic slugs
-- NO banned topics
-- Specific numbers/outcomes in every headline`;
+- Every headline: [Company] + [Tech] + [Specific metric/outcome]
+- Stories must be based on real, verifiable engineering decisions
+- NO banned words, NO generic advice — only real-world engineering`;
 
   const { model, modelId } = getModel();
 
