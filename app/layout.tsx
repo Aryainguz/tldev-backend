@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tldev.app";
+const siteUrl = "https://tldev.thexitingway.com";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -71,7 +71,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "TL;Dev | Tech In Shorts",
-    description: "Stop doom scrolling start with real knowledge delivered in shorts.",
+    description:
+      "Stop doom scrolling start with real knowledge delivered in shorts.",
     images: [
       {
         url: `${siteUrl}/IMG_6314.png`,

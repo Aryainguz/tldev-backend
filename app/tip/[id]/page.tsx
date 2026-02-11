@@ -47,17 +47,34 @@ export async function generateMetadata({
     return {
         title,
         description,
+        metadataBase: new URL(siteUrl),
         openGraph: {
             type: "article",
             title: tip.tipText,
             description,
             siteName: "TL;Dev",
             url: `${siteUrl}/tip/${tip.id}`,
+            images: [
+                {
+                    url: `${siteUrl}/tip/${tip.id}/opengraph-image`,
+                    width: 1200,
+                    height: 630,
+                    alt: tip.tipText,
+                },
+            ],
         },
         twitter: {
             card: "summary_large_image",
             title: tip.tipText,
             description,
+            images: [
+                {
+                    url: `${siteUrl}/tip/${tip.id}/twitter-image`,
+                    width: 1200,
+                    height: 630,
+                    alt: tip.tipText,
+                },
+            ],
         },
     };
 }
