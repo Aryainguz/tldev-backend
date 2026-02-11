@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 const siteUrl = "https://tldev.thexitingway.com";
 
 interface PageProps {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }
 
 async function getTip(id: string) {
@@ -29,7 +29,8 @@ async function getTip(id: string) {
 export async function generateMetadata({
     params,
 }: PageProps): Promise<Metadata> {
-    const tip = await getTip(params.id);
+    const { id } = await params;
+    const tip = await getTip(id);
 
     if (!tip) {
         return {
@@ -62,7 +63,8 @@ export async function generateMetadata({
 }
 
 export default async function TipSharePage({ params }: PageProps) {
-    const tip = await getTip(params.id);
+    const { id } = await params;
+    const tip = await getTip(id);
 
     if (!tip) {
         notFound();

@@ -15,7 +15,8 @@ const CYAN_DIM = "#5BC4C4";
 const PINK = "#E8A5D8";
 const BG = "#0f0f0f";
 
-export default async function Image({ params }: { params: { id: string } }) {
+export default async function Image({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     let tip: {
         tipText: string;
         tipSummary: string | null;
@@ -25,7 +26,7 @@ export default async function Image({ params }: { params: { id: string } }) {
 
     try {
         tip = await prisma.tip.findUnique({
-            where: { id: params.id, status: "published" },
+            where: { id, status: "published" },
             select: {
                 tipText: true,
                 tipSummary: true,
