@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
 
-export const alt = "TL;Dev — One-Shot Tech Learning for Serious Engineers";
+export const alt = "TL;Dev — Learn Engineering in Shorts.";
 export const size = {
   width: 1200,
   height: 630,
@@ -106,7 +106,7 @@ export default async function Image() {
           marginBottom: "48px",
         }}
       >
-        One-Shot Tech Learning for Serious Engineers
+        Learn Engineering in Shorts.
       </div>
 
       {/* Tech badges */}
@@ -116,18 +116,18 @@ export default async function Image() {
           gap: "16px",
         }}
       >
-        {["System Design", "Backend", "Performance", "APIs"].map(
+        {["System Design", "Backend", "Performance", "APIs", "more"].map(
           (tag, index) => (
             <div
               key={tag}
               style={{
                 padding: "12px 24px",
                 background:
-                  index < 2
+                  index < 3
                     ? "rgba(127, 239, 239, 0.1)"
                     : "rgba(232, 165, 216, 0.1)",
                 border:
-                  index < 2
+                  index < 3
                     ? "1px solid rgba(127, 239, 239, 0.3)"
                     : "1px solid rgba(232, 165, 216, 0.3)",
                 borderRadius: "100px",

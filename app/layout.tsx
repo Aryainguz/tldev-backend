@@ -16,7 +16,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "TL;Dev — One-Shot Tech Learning for Serious Engineers",
+    default: "TL;Dev — Learn Engineering in Shorts.",
     template: "%s | TL;Dev",
   },
   description:
@@ -56,13 +56,13 @@ export const metadata: Metadata = {
     siteName: "TL;Dev",
     title: "TL;Dev — Be ∞× Dev",
     description:
-      "One-Shot Tech Learning for Serious Engineers. Daily tech shots on system design, backend, performance & more.",
+      "Daily tech shorts trained on the best articles, research papers, and real system design knowledge — no fluff.",
     images: [
       {
         url: `${siteUrl}/IMG_6314.png`,
         width: 1200,
         height: 630,
-        alt: "TL;Dev — One-Shot Tech Learning for Serious Engineers",
+        alt: "TL;Dev — Learn Engineering in Shorts.",
       },
     ],
   },
@@ -149,7 +149,8 @@ export default function RootLayout({
         "@id": `${siteUrl}/#website`,
         url: siteUrl,
         name: "TL;Dev",
-        description: "One-Shot Tech Learning for Serious Engineers",
+        description:
+          "Daily tech shorts trained on the best articles, research papers, and real system design knowledge — no fluff.",
         publisher: {
           "@id": `${siteUrl}/#organization`,
         },

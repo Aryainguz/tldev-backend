@@ -1,7 +1,7 @@
 {
-  "name": "TL;Dev — One-Shot Tech Learning",
+  "name": "TL;Dev — Learn Engineering in Shorts.",
   "short_name": "TL;Dev",
-  "description": "One-Shot Tech Learning for Serious Engineers. Daily tech shots on system design, backend, performance & more.",
+  "description": "Daily tech shorts trained on the best articles, research papers, and real system design knowledge — no fluff.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#09090b",

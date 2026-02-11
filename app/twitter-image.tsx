@@ -106,7 +106,7 @@ export default async function Image() {
           marginBottom: "48px",
         }}
       >
-        One-Shot Tech Learning for Serious Engineers
+        Learn Engineering in Shorts.
       </div>
 
       {/* Tech badges */}
