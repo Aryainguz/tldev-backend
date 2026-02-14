@@ -461,8 +461,9 @@ export default function LandingPage() {
             Download on iOS
           </motion.button>
           <motion.a
-            href="/app.apk"
-            download="TLDev.apk"
+            href="https://play.google.com/store/apps/details?id=com.tldev.app"
+            target="_blank"
+            rel="noopener noreferrer"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             style={{
@@ -903,8 +904,9 @@ export default function LandingPage() {
               Download on iOS
             </motion.a>
             <motion.a
-              href="/app.apk"
-              download="TLDev.apk"
+              href="https://play.google.com/store/apps/details?id=com.tldev.app"
+              target="_blank"
+              rel="noopener noreferrer"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               style={{
